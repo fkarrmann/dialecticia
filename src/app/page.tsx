@@ -94,7 +94,7 @@ export default async function HomePage() {
         {/* Footer */}
         <div className="text-center text-slate-400">
           <p className="italic">
-            "El único conocimiento verdadero es saber que no sabes nada" - Sócrates
+            &quot;El único conocimiento verdadero es saber que no sabes nada&quot; - Sócrates
           </p>
         </div>
       </div>

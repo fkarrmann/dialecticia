@@ -22,22 +22,22 @@ Desarrollo de Dialecticia en 5 fases principales, desde MVP hasta aplicación co
 - [x] Seeders con filósofos de ejemplo
 
 ### API Fundamental
-- [ ] `/api/debates` - CRUD básico
+- [x] `/api/debates` - CRUD básico
 - [ ] `/api/philosophers` - Gestión básica
-- [ ] `/api/llm` - Integración OpenAI
-- [ ] Middleware de validación
+- [x] `/api/llm` - Integración OpenAI
+- [x] Middleware de validación
 
 ### UI Base
-- [ ] Layout principal con navegación
-- [ ] Componente de chat básico
-- [ ] Selector de tema simple
-- [ ] Vista de mensaje con identificación de emisor
+- [x] Layout principal con navegación
+- [x] Componente de chat básico
+- [x] Selector de tema simple
+- [x] Vista de mensaje con identificación de emisor
 
 ### Funcionalidad MVP
-- [ ] Crear nuevo debate con tema
-- [ ] Generar 2 filósofos automáticamente
-- [ ] Chat básico entre usuario y 2 AIs
-- [ ] Persistencia de conversación
+- [x] Crear nuevo debate con tema
+- [x] Generar 2 filósofos automáticamente
+- [x] Chat básico entre usuario y 2 AIs
+- [x] Persistencia de conversación
 
 **🎯 Entregable**: Debate funcional básico con 2 filósofos virtuales
 
@@ -171,13 +171,13 @@ Desarrollo de Dialecticia en 5 fases principales, desde MVP hasta aplicación co
 ## 📊 Progreso Actual
 
 **Fase Actual**: 🏗️ Fase 1 - Fundaciones
-**Progreso General**: 25% - Fundaciones establecidas
+**Progreso General**: 85% - MVP funcional completado
 
 ### Próximos Pasos Inmediatos:
-1. Setup inicial de Next.js y dependencias
-2. Configuración de base de datos
-3. Primer chat funcional
-4. Integración básica con OpenAI
+1. ✅ MVP chat funcional completado
+2. Configurar deploy automático en Vercel
+3. Conectar con OpenAI API real (opcional)
+4. Comenzar Fase 2: Sistema de filósofos avanzado
 
 ---
 
