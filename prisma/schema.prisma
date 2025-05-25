@@ -1,0 +1,145 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  debates   Debate[]
+  messages  Message[]
+  votes     Vote[]
+  
+  @@map("users")
+}
+
+model Philosopher {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  description         String
+  philosophicalSchool String
+  personalityTraits   String   // JSON as string for SQLite
+  coreBeliefs         String   // JSON array as string
+  argumentStyle       String
+  questioningApproach String
+  isActive            Boolean  @default(true)
+  usageCount          Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  // Relations
+  participations DebateParticipant[]
+  messages       Message[]
+  votes          Vote[]
+  
+  @@map("philosophers")
+}
+
+model Debate {
+  id          String      @id @default(cuid())
+  topic       String
+  description String?
+  status      DebateStatus @default(TOPIC_CLARIFICATION)
+  userId      String?
+  isPublic    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  concludedAt DateTime?
+  
+  // Relations
+  user         User?               @relation(fields: [userId], references: [id])
+  messages     Message[]
+  participants DebateParticipant[]
+  
+  @@map("debates")
+}
+
+model DebateParticipant {
+  id           String @id @default(cuid())
+  debateId     String
+  philosopherId String
+  role         ParticipantRole
+  joinedAt     DateTime @default(now())
+  
+  // Relations
+  debate       Debate      @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  philosopher  Philosopher @relation(fields: [philosopherId], references: [id])
+  
+  @@unique([debateId, philosopherId])
+  @@map("debate_participants")
+}
+
+model Message {
+  id            String      @id @default(cuid())
+  content       String
+  senderType    SenderType
+  debateId      String
+  philosopherId String?
+  userId        String?
+  turnNumber    Int
+  timestamp     DateTime    @default(now())
+  
+  // Relations
+  debate        Debate       @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  philosopher   Philosopher? @relation(fields: [philosopherId], references: [id])
+  user          User?        @relation(fields: [userId], references: [id])
+  votes         Vote[]
+  
+  @@map("messages")
+}
+
+model Vote {
+  id            String    @id @default(cuid())
+  messageId     String
+  voterType     VoterType
+  voterId       String    // userId o philosopherId
+  value         Int       // -1, 0, 1
+  createdAt     DateTime  @default(now())
+  
+  // Relations
+  message       Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user          User?       @relation(fields: [voterId], references: [id])
+  philosopher   Philosopher? @relation(fields: [voterId], references: [id])
+  
+  @@unique([messageId, voterId, voterType])
+  @@map("votes")
+}
+
+// Enums
+enum DebateStatus {
+  TOPIC_CLARIFICATION
+  ACTIVE_DEBATE
+  PAUSED
+  CONCLUDED
+  ABANDONED
+}
+
+enum SenderType {
+  USER
+  PHILOSOPHER
+  SYSTEM
+}
+
+enum VoterType {
+  USER
+  PHILOSOPHER
+  EXTERNAL
+}
+
+enum ParticipantRole {
+  CHALLENGER_A    // Primer filósofo desafiante
+  CHALLENGER_B    // Segundo filósofo desafiante
+  MODERATOR       // Futuro: filósofo moderador
+}
