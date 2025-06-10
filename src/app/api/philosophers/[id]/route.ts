@@ -44,9 +44,9 @@ const updatePhilosopherSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const params = await context.params
+  const { id } = await params
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -59,7 +59,7 @@ export async function GET(
 
     // Buscar el filósofo con datos completos
     const philosopher = await prisma.philosopher.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         personalityAspects: true,
       }
@@ -171,6 +171,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -181,7 +182,6 @@ export async function PUT(
       }, { status: 401 })
     }
 
-    const { id } = await params
     const body = await request.json()
     const validatedData = updatePhilosopherSchema.parse(body)
 
@@ -327,9 +327,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const params = await context.params
+  const { id } = await params
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -342,7 +342,7 @@ export async function DELETE(
 
     // Buscar el filósofo
     const philosopher = await prisma.philosopher.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!philosopher) {
@@ -355,7 +355,7 @@ export async function DELETE(
     // Verificar si está siendo usado en debates activos
     const activeDebates = await prisma.debateParticipant.count({
       where: {
-        philosopherId: params.id,
+        philosopherId: id,
         debate: {
           status: {
             in: ['TOPIC_CLARIFICATION', 'ACTIVE_DEBATE', 'PAUSED']
@@ -373,7 +373,7 @@ export async function DELETE(
 
     // Eliminar el filósofo
     await prisma.philosopher.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     return NextResponse.json({

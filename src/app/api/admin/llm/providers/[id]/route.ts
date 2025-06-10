@@ -1,9 +1,11 @@
+// RECREATED: Fixed for Next.js 15 params typing
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentSession } from '@/lib/auth'
 import { z } from 'zod'
 import crypto from 'crypto'
 
+// RECREATED: Fixed for Next.js 15 params typing
 const ENCRYPTION_KEY = process.env.LLM_ENCRYPTION_KEY || 'dev-key-32-chars-long-for-testing'
 
 function encryptApiKey(apiKey: string): string {
@@ -29,8 +31,9 @@ const UpdateProviderSchema = z.object({
 // GET: Get specific provider
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await getCurrentSession()
     
@@ -42,7 +45,7 @@ export async function GET(
     }
 
     const provider = await prisma.lLMProvider.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         models: {
           select: {
@@ -89,8 +92,9 @@ export async function GET(
 // PUT: Update provider
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await getCurrentSession()
     
@@ -106,7 +110,7 @@ export async function PUT(
 
     // Check if provider exists
     const existingProvider = await prisma.lLMProvider.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!existingProvider) {
@@ -148,7 +152,7 @@ export async function PUT(
     }
 
     const updatedProvider = await prisma.lLMProvider.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         models: {
@@ -196,8 +200,9 @@ export async function PUT(
 // DELETE: Delete provider
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await getCurrentSession()
     
@@ -210,7 +215,7 @@ export async function DELETE(
 
     // Check if provider exists
     const provider = await prisma.lLMProvider.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: {
@@ -228,26 +233,28 @@ export async function DELETE(
       )
     }
 
-    // Check if provider has interactions
+    // Check if provider has interactions or models
     if (provider._count.interactions > 0) {
       return NextResponse.json(
-        { error: 'Cannot delete provider with existing interactions. Deactivate it instead.' },
+        { error: 'Cannot delete provider with existing interactions' },
         { status: 400 }
       )
     }
 
-    // Delete all models first (cascade should handle this, but let's be explicit)
-    await prisma.lLMModel.deleteMany({
-      where: { providerId: params.id }
-    })
+    if (provider._count.models > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete provider with existing models' },
+        { status: 400 }
+      )
+    }
 
-    // Delete the provider
     await prisma.lLMProvider.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json(
-      { message: 'Provider deleted successfully' }
+      { message: 'Provider deleted successfully' },
+      { status: 200 }
     )
 
   } catch (error) {

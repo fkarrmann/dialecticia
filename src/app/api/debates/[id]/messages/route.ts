@@ -10,8 +10,10 @@ const createMessageSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
+
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -22,16 +24,10 @@ export async function POST(
       }, { status: 401 })
     }
 
-    const params = await context.params
-    const debateId = params.id
-    
-    const body = await request.json()
-    const validatedData = createMessageSchema.parse(body)
-
     // Verificar que el debate existe y pertenece al usuario
     const debate = await prisma.debate.findFirst({
       where: {
-        id: debateId,
+        id: id,
         userId: session.user.id
       },
       include: {
@@ -75,12 +71,15 @@ export async function POST(
       ? Math.max(...debate.messages.map(m => m.turnNumber))
       : 0
 
+    const body = await request.json()
+    const validatedData = createMessageSchema.parse(body)
+
     // Crear el mensaje del usuario
     await prisma.message.create({
       data: {
         content: validatedData.content,
         senderType: 'USER',
-        debateId: debateId,
+        debateId: id,
         turnNumber: lastTurn + 1,
         userId: session.user.id,
       },
@@ -115,7 +114,7 @@ export async function POST(
       data: {
         content: philosopherResponse.content,
         senderType: 'PHILOSOPHER',
-        debateId: debateId,
+        debateId: id,
         philosopherId: philosopher.id,
         turnNumber: lastTurn + 2,
         userId: session.user.id,
@@ -124,7 +123,7 @@ export async function POST(
 
     // Obtener debate actualizado
     const updatedDebate = await prisma.debate.findUnique({
-      where: { id: debateId },
+      where: { id: id },
       include: {
         messages: {
           include: {
@@ -187,8 +186,10 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
+
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -199,13 +200,10 @@ export async function GET(
       }, { status: 401 })
     }
 
-    const params = await context.params
-    const debateId = params.id
-
     // Obtener mensajes del debate solo si pertenece al usuario
     const messages = await prisma.message.findMany({
       where: {
-        debateId,
+        debateId: id,
         debate: {
           userId: session.user.id
         }

@@ -10,9 +10,9 @@ const updateDebateSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const params = await context.params
+  const { id } = await params
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -25,7 +25,7 @@ export async function GET(
 
     const debate = await prisma.debate.findUnique({
       where: { 
-        id: params.id,
+        id: id,
         userId: session.user.id  // Solo mostrar debates del usuario actual
       },
       include: {
@@ -67,9 +67,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const params = await context.params
+  const { id } = await params
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -86,7 +86,7 @@ export async function PUT(
     // Verificar que el debate existe y pertenece al usuario
     const existingDebate = await prisma.debate.findUnique({
       where: { 
-        id: params.id,
+        id: id,
         userId: session.user.id  // Solo permitir editar debates propios
       },
     })
@@ -100,7 +100,7 @@ export async function PUT(
 
     // Actualizar el debate
     const updatedDebate = await prisma.debate.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         topic: validatedData.topic,
         description: validatedData.description || undefined,  // Convert null to undefined for Prisma
@@ -138,9 +138,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const params = await context.params
+  const { id } = await params
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -154,7 +154,7 @@ export async function DELETE(
     // Verificar que el debate existe y pertenece al usuario
     const existingDebate = await prisma.debate.findUnique({
       where: { 
-        id: params.id,
+        id: id,
         userId: session.user.id  // Solo permitir eliminar debates propios
       },
     })
@@ -172,21 +172,21 @@ export async function DELETE(
       prisma.vote.deleteMany({
         where: {
           message: {
-            debateId: params.id
+            debateId: id
           }
         }
       }),
       // Eliminar mensajes del debate
       prisma.message.deleteMany({
-        where: { debateId: params.id }
+        where: { debateId: id }
       }),
       // Eliminar participantes del debate
       prisma.debateParticipant.deleteMany({
-        where: { debateId: params.id }
+        where: { debateId: id }
       }),
       // Eliminar el debate
       prisma.debate.delete({
-        where: { id: params.id }
+        where: { id: id }
       })
     ])
 

@@ -4,30 +4,38 @@ import { getCurrentSession } from '@/lib/auth'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
-    // Verificar autenticación
     const session = await getCurrentSession()
-    if (!session) {
-      return NextResponse.json({
-        success: false,
-        error: 'No autenticado',
-      }, { status: 401 })
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
     }
 
-    const philosopherId = params.id
+    const { isFavorite } = await request.json()
 
-    // Verificar que el filósofo existe
+    if (typeof isFavorite !== 'boolean') {
+      return NextResponse.json(
+        { error: 'isFavorite must be a boolean' },
+        { status: 400 }
+      )
+    }
+
+    // Check if philosopher exists
     const philosopher = await prisma.philosopher.findUnique({
-      where: { id: philosopherId, isActive: true }
+      where: { id }
     })
 
     if (!philosopher) {
-      return NextResponse.json({
-        success: false,
-        error: 'Filósofo no encontrado',
-      }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Philosopher not found' },
+        { status: 404 }
+      )
     }
 
     // Verificar si ya existe como favorito
@@ -35,7 +43,7 @@ export async function POST(
       where: {
         userId_philosopherId: {
           userId: session.user.id,
-          philosopherId: philosopherId
+          philosopherId: id
         }
       }
     })
@@ -56,7 +64,7 @@ export async function POST(
       await prisma.philosopherFavorite.create({
         data: {
           userId: session.user.id,
-          philosopherId: philosopherId
+          philosopherId: id
         }
       })
 

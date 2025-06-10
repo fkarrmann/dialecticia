@@ -15,10 +15,10 @@ export async function OPTIONS() {
 }
 
 export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const params = await context.params
+  const { id } = await params
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -32,7 +32,7 @@ export async function GET(
     // Obtener el debate completo
     const debate = await prisma.debate.findUnique({
       where: { 
-        id: params.id,
+        id: id,
         userId: session.user.id  // Solo exportar debates propios
       },
       include: {

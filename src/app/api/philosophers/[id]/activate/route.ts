@@ -4,8 +4,9 @@ import { getCurrentSession } from '@/lib/auth'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -16,11 +17,9 @@ export async function POST(
       }, { status: 401 })
     }
 
-    const { id: philosopherId } = await params
-
     // Verificar que el filósofo existe
     const philosopher = await prisma.philosopher.findUnique({
-      where: { id: philosopherId, isActive: true }
+      where: { id, isActive: true }
     })
 
     if (!philosopher) {
@@ -32,7 +31,7 @@ export async function POST(
 
     // Incrementar el contador de uso del filósofo
     await prisma.philosopher.update({
-      where: { id: philosopherId },
+      where: { id },
       data: { usageCount: { increment: 1 } }
     })
 
@@ -41,7 +40,7 @@ export async function POST(
       where: {
         userId_philosopherId: {
           userId: session.user.id,
-          philosopherId: philosopherId
+          philosopherId: id
         }
       }
     })
@@ -51,7 +50,7 @@ export async function POST(
       await prisma.philosopherFavorite.create({
         data: {
           userId: session.user.id,
-          philosopherId: philosopherId
+          philosopherId: id
         }
       })
     }
@@ -60,7 +59,7 @@ export async function POST(
       success: true,
       message: 'Filósofo activado exitosamente',
       data: {
-        philosopherId,
+        philosopherId: id,
         name: philosopher.name,
         usageCount: philosopher.usageCount + 1
       }

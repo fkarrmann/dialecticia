@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 
-interface RouteParams {
-  params: { id: string }
-}
-
 // GET: Cargar una versión específica
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = params
+    const { id } = await params
     const versionsDir = path.join(process.cwd(), 'docs', 'prompts', 'versions')
     
     // Buscar el archivo con este ID
@@ -37,9 +36,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE: Eliminar una versión
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = params
+    const { id } = await params
     const versionsDir = path.join(process.cwd(), 'docs', 'prompts', 'versions')
     
     // Buscar el archivo con este ID

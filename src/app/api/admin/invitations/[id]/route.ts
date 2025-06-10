@@ -9,9 +9,9 @@ const updateInvitationCodeSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const params = await context.params
+  const { id } = await params
   try {
     // Verificar autenticación
     const session = await getCurrentSession()
@@ -27,7 +27,7 @@ export async function PATCH(
 
     // Verificar que el código existe
     const existingCode = await prisma.invitationCode.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!existingCode) {
@@ -39,7 +39,7 @@ export async function PATCH(
 
     // Actualizar el código
     const updatedCode = await prisma.invitationCode.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         isActive: validatedData.isActive,
       },
