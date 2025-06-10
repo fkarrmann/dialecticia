@@ -15,6 +15,9 @@ npm ci
 echo "🔧 Generating Prisma client with force flag..."
 npx prisma generate --no-engine
 
+echo "🗄️ Applying database migrations..."
+npx prisma db push
+
 echo "🏗️ Building Next.js application..."
 npx next build
 
