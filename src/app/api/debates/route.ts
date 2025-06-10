@@ -1,60 +1,112 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
+import { generatePhilosopherResponse } from '@/lib/llm'
+import { getCurrentSession } from '@/lib/auth'
 
 const createDebateSchema = z.object({
   topic: z.string().min(3, 'El tema debe tener al menos 3 caracteres'),
-  description: z.string().optional(),
-  selectedPhilosopherId: z.string().optional(),
+  description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
+  selectedPhilosopherId: z.string().min(1, 'Debe seleccionar un filósofo'),
 })
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar autenticación
+    const session = await getCurrentSession()
+    if (!session) {
+      return NextResponse.json({
+        success: false,
+        error: 'No autenticado',
+      }, { status: 401 })
+    }
+
     const body = await request.json()
     const validatedData = createDebateSchema.parse(body)
 
-    // Crear el debate
+    // Verificar que el filósofo seleccionado existe y está activo
+    const selectedPhilosopher = await prisma.philosopher.findFirst({
+      where: {
+        id: validatedData.selectedPhilosopherId,
+        isActive: true
+      },
+      include: {
+        personalityAspects: true
+      }
+    })
+
+    if (!selectedPhilosopher) {
+      return NextResponse.json({
+        success: false,
+        error: 'El filósofo seleccionado no está disponible',
+      }, { status: 400 })
+    }
+
+    // Crear el debate asociado al usuario actual
     const debate = await prisma.debate.create({
       data: {
         topic: validatedData.topic,
         description: validatedData.description,
-        status: 'TOPIC_CLARIFICATION',
+        status: 'ACTIVE_DEBATE',
+        userId: session.user.id,
+        isPublic: false,
       },
     })
 
-    // Seleccionar filósofos para el debate
-    const philosophers = await selectPhilosophersForDebate(validatedData.selectedPhilosopherId)
-    
-    // Crear participantes
-    await prisma.debateParticipant.createMany({
-      data: philosophers.map((phil, index) => ({
-        debateId: debate.id,
-        philosopherId: phil.id,
-        role: index === 0 ? 'CHALLENGER_A' : 'CHALLENGER_B',
-      })),
-    })
-
-    // Incrementar contador de uso de filósofos
-    await prisma.philosopher.updateMany({
-      where: {
-        id: { in: philosophers.map(p => p.id) }
-      },
+    // Crear participante único
+    await prisma.debateParticipant.create({
       data: {
-        usageCount: { increment: 1 }
+        debateId: debate.id,
+        philosopherId: selectedPhilosopher.id,
+        role: 'CHALLENGER_A',
       }
     })
 
-    // Crear mensaje inicial del sistema
+    // Incrementar contador de uso del filósofo
+    await prisma.philosopher.update({
+      where: { id: selectedPhilosopher.id },
+      data: { usageCount: { increment: 1 } }
+    })
+
+    // Registrar como filósofo favorito del usuario (para futuras selecciones por defecto)
+    await prisma.philosopherFavorite.upsert({
+      where: {
+        userId_philosopherId: {
+          userId: session.user.id,
+          philosopherId: selectedPhilosopher.id
+        }
+      },
+      update: {
+        createdAt: new Date() // Actualizar fecha para que sea el más reciente
+      },
+      create: {
+        userId: session.user.id,
+        philosopherId: selectedPhilosopher.id
+      }
+    })
+
+    // Generar primera respuesta del filósofo
+    console.log(`🤖 ${selectedPhilosopher.name} responde a la postura del usuario`)
+    const philosopherResponse = await generatePhilosopherResponse(
+      selectedPhilosopher,
+      validatedData.topic,
+      [{
+        sender: 'Usuario',
+        content: `Mi punto de vista sobre "${validatedData.topic}": ${validatedData.description}`,
+        timestamp: new Date(),
+      }],
+      validatedData.description,
+      'SOCRATIC_TO_USER' // El filósofo responde directamente al usuario
+    )
+
     await prisma.message.create({
       data: {
-        content: `¡Bienvenido al debate sobre "${validatedData.topic}"! 
-
-Los filósofos ${philosophers[0].name} y ${philosophers[1].name} están listos para desafiar tus ideas.
-
-**Ronda de Clarificación**: Primero, explica tu posición sobre el tema para que podamos entender exactamente qué defiendes.`,
-        senderType: 'SYSTEM',
+        content: philosopherResponse.content,
+        senderType: 'PHILOSOPHER',
         debateId: debate.id,
-        turnNumber: 0,
+        philosopherId: selectedPhilosopher.id,
+        turnNumber: 1,
+        userId: session.user.id,
       },
     })
 
@@ -102,11 +154,24 @@ Los filósofos ${philosophers[0].name} y ${philosophers[1].name} están listos p
 
 export async function GET(request: NextRequest) {
   try {
+    // Verificar autenticación
+    const session = await getCurrentSession()
+    if (!session) {
+      return NextResponse.json({
+        success: false,
+        error: 'No autenticado',
+      }, { status: 401 })
+    }
+
     const url = new URL(request.url)
     const limit = parseInt(url.searchParams.get('limit') || '10')
     const offset = parseInt(url.searchParams.get('offset') || '0')
 
+    // Filtrar debates solo del usuario actual
     const debates = await prisma.debate.findMany({
+      where: {
+        userId: session.user.id
+      },
       take: limit,
       skip: offset,
       orderBy: { createdAt: 'desc' },
@@ -136,38 +201,4 @@ export async function GET(request: NextRequest) {
       error: 'Error interno del servidor',
     }, { status: 500 })
   }
-}
-
-async function selectPhilosophersForDebate(selectedPhilosopherId?: string) {
-  // Obtener todos los filósofos activos
-  const allPhilosophers = await prisma.philosopher.findMany({
-    where: { isActive: true },
-  })
-
-  if (allPhilosophers.length < 2) {
-    throw new Error('No hay suficientes filósofos disponibles')
-  }
-
-  let selectedPhilosophers: typeof allPhilosophers = []
-
-  // Si el usuario seleccionó un filósofo específico
-  if (selectedPhilosopherId) {
-    const selectedPhil = allPhilosophers.find(p => p.id === selectedPhilosopherId)
-    if (selectedPhil) {
-      selectedPhilosophers.push(selectedPhil)
-      
-      // Seleccionar un segundo filósofo diferente aleatoriamente
-      const remainingPhils = allPhilosophers.filter(p => p.id !== selectedPhilosopherId)
-      const randomSecond = remainingPhils[Math.floor(Math.random() * remainingPhils.length)]
-      selectedPhilosophers.push(randomSecond)
-    }
-  }
-
-  // Si no hay selección o la selección falló, elegir 2 aleatoriamente
-  if (selectedPhilosophers.length === 0) {
-    const shuffled = [...allPhilosophers].sort(() => Math.random() - 0.5)
-    selectedPhilosophers = shuffled.slice(0, 2)
-  }
-
-  return selectedPhilosophers
 } 

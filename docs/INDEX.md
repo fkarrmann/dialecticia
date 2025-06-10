@@ -24,6 +24,7 @@
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Instrucciones de deploy
 - **[TESTING.md](./TESTING.md)** - Estrategia de testing
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Solución de problemas comunes
+- **[PROBLEMAS_PENDIENTES_EXPORT_MODAL.md](./PROBLEMAS_PENDIENTES_EXPORT_MODAL.md)** - Problemas críticos del modal de exportación
 
 ### 📝 Referencia
 - **[PROMPTS.md](./PROMPTS.md)** - Biblioteca de prompts para filósofos
@@ -48,6 +49,7 @@
 | SETUP.md | 🚧 En progreso | - |
 | API.md | 📝 Pendiente | - |
 | PHILOSOPHERS.md | 📝 Pendiente | - |
+| PROBLEMAS_PENDIENTES_EXPORT_MODAL.md | ✅ Completo | 3 Dic 2025 |
 
 ---
 

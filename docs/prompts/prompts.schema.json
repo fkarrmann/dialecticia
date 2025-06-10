@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Version of the prompts schema"
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "socraticPrompts": {
+      "type": "object",
+      "properties": {
+        "SOCRATIC_MODERATOR_PLURAL": {
+          "type": "object",
+          "properties": {
+            "systemPrompt": { "type": "string" },
+            "style": { "type": "string" },
+            "maxLength": { "type": "number" },
+            "examples": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["systemPrompt", "style", "maxLength"]
+        },
+        "SOCRATIC_TO_USER": {
+          "type": "object",
+          "properties": {
+            "systemPrompt": { "type": "string" },
+            "style": { "type": "string" },
+            "maxLength": { "type": "number" },
+            "examples": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["systemPrompt", "style", "maxLength"]
+        },
+        "SOCRATIC_TO_PHILOSOPHER": {
+          "type": "object",
+          "properties": {
+            "systemPrompt": { "type": "string" },
+            "style": { "type": "string" },
+            "maxLength": { "type": "number" },
+            "examples": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["systemPrompt", "style", "maxLength"]
+        },
+        "RESPONDING_TO_SOCRATES": {
+          "type": "object",
+          "properties": {
+            "systemPrompt": { "type": "string" },
+            "style": { "type": "string" },
+            "maxLength": { "type": "number" },
+            "examples": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["systemPrompt", "style", "maxLength"]
+        },
+        "SOCRATIC_DEFAULT": {
+          "type": "object",
+          "properties": {
+            "systemPrompt": { "type": "string" },
+            "style": { "type": "string" },
+            "maxLength": { "type": "number" },
+            "examples": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["systemPrompt", "style", "maxLength"]
+        }
+      },
+      "required": [
+        "SOCRATIC_MODERATOR_PLURAL",
+        "SOCRATIC_TO_USER", 
+        "SOCRATIC_TO_PHILOSOPHER",
+        "RESPONDING_TO_SOCRATES",
+        "SOCRATIC_DEFAULT"
+      ]
+    },
+    "philosopherPrompts": {
+      "type": "object",
+      "properties": {
+        "basePersonalityTemplate": { "type": "string" },
+        "argumentStyles": {
+          "type": "object",
+          "properties": {
+            "platonist": { "type": "string" },
+            "aristotelian": { "type": "string" },
+            "nihilist": { "type": "string" },
+            "empiricist": { "type": "string" }
+          }
+        }
+      },
+      "required": ["basePersonalityTemplate", "argumentStyles"]
+    }
+  },
+  "required": ["version", "lastUpdated", "socraticPrompts", "philosopherPrompts"]
+} 

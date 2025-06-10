@@ -1,0 +1,1577 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  User, 
+  Camera, 
+  Brain, 
+  MessageSquare, 
+  Sparkles,
+  Wand2,
+  Target,
+  Zap,
+  FileText,
+  CheckCircle,
+  BarChart3,
+  Globe,
+  BookOpen,
+  HelpCircle,
+  Volume2
+} from 'lucide-react'
+
+interface WizardStep {
+  id: number
+  title: string
+  description: string
+  icon: React.ReactNode
+}
+
+interface TradeOffAttribute {
+  name: string
+  leftExtreme: string  // ej: "Creativo"
+  rightExtreme: string // ej: "Conservador"
+  value: number        // 0-10, donde 0 = leftExtreme, 5 = neutral, 10 = rightExtreme
+  description?: string // Descripción del atributo para tooltip
+  leftDescription?: string // Descripción contextual del extremo izquierdo
+  rightDescription?: string // Descripción contextual del extremo derecho
+}
+
+interface CommunicationTone {
+  preset: string // Preset seleccionado o 'custom'
+  description: string // Descripción personalizada del tono
+}
+
+interface PhilosopherData {
+  // Paso 1: Identidad y Inspiración
+  name: string
+  photoUrl?: string
+  inspirationType: 'philosopher' | 'school' | ''
+  inspirationSource: string // Filósofo específico o escuela
+  
+  // Paso 2: Atributos Trade-off
+  attributes: TradeOffAttribute[]
+  communicationTone: CommunicationTone // Nuevo campo para tono de comunicación
+  
+  // Paso 3: Salsa Secreta
+  secretSauce: string
+  
+  // Paso 4: Mecánicas de Debate
+  debateMechanics: string
+  
+  // Paso 5: Resultado del Procesamiento (generado por IA)
+  personalityScores: { name: string; value: number }[]
+  generatedDescription: string
+  generatedFields?: {
+    personalityTraits?: string[] | { name: string }[]
+    coreBeliefs?: string[]
+    argumentStyle?: string
+  }
+  
+  // Configuración final
+  isPublic: boolean
+}
+
+const WIZARD_STEPS: WizardStep[] = [
+  {
+    id: 1,
+    title: "Identidad e Inspiración",
+    description: "Define el nombre, foto y fuente de inspiración de tu pensador",
+    icon: <User className="w-5 h-5" />
+  },
+  {
+    id: 2,
+    title: "Atributos Trade-off",
+    description: "Ajusta los extremos filosóficos según tu inspiración",
+    icon: <Brain className="w-5 h-5" />
+  },
+  {
+    id: 3,
+    title: "Mecánicas y Tono",
+    description: "Define cómo argumenta, debate y se comunica tu pensador",
+    icon: <MessageSquare className="w-5 h-5" />
+  },
+  {
+    id: 4,
+    title: "Salsa Secreta",
+    description: "Agrega tu toque personal único y especial",
+    icon: <Wand2 className="w-5 h-5" />
+  },
+  {
+    id: 5,
+    title: "Resultado Final",
+    description: "Revisión y generación del perfil completo",
+    icon: <Target className="w-5 h-5" />
+  }
+]
+
+const FAMOUS_PHILOSOPHERS = [
+  // Filósofos Antiguos
+  "Sócrates", "Platón", "Aristóteles", "Epicuro", "Zenón de Citio", "Diógenes", "Heráclito", "Parménides", "Pitágoras", "Tales de Mileto", "Anaximandro", "Anaxímenes", "Empédocles", "Demócrito", "Protágoras", "Gorgias",
+  
+  // Filósofos Medievales
+  "San Agustín", "Santo Tomás de Aquino", "Averroes", "Avicena", "Maimónides", "Duns Escoto", "Guillermo de Ockham", "Anselmo de Canterbury",
+  
+  // Filósofos Modernos
+  "Descartes", "Spinoza", "Leibniz", "Locke", "Berkeley", "Hume", "Kant", "Fichte", "Schelling", "Hegel", "Schopenhauer", "Kierkegaard", "Nietzsche",
+  
+  // Filósofos Contemporáneos
+  "Marx", "Engels", "Mill", "Bentham", "James", "Peirce", "Dewey", "Russell", "Moore", "Wittgenstein", "Heidegger", "Sartre", "Camus", "Merleau-Ponty", "Levinas", "Derrida", "Foucault", "Habermas", "Rawls", "Nozick", "Singer", "Dennett", "Searle", "Chomsky", "Putnam", "Kripke", "Lewis", "Plantinga", "MacIntyre", "Taylor", "Rorty", "Nagel", "Parfit", "Nussbaum", "Butler",
+  
+  // Filósofos No-Occidentales
+  "Confucio", "Lao Tzu", "Mencio", "Zhuangzi", "Buda", "Nagarjuna", "Shankara", "Ramanuja", "Zhu Xi", "Wang Yangming", "Nishida Kitaro", "Al-Ghazali", "Ibn Rushd", "Ibn Sina"
+]
+
+const PHILOSOPHICAL_SCHOOLS = [
+  // Escuelas Antiguas
+  "Estoicismo", "Epicureísmo", "Cinismo", "Escepticismo", "Neoplatonismo", "Aristotelismo", "Platonismo", "Presocrática", "Sofística", "Academia de Platón", "Liceo de Aristóteles",
+  
+  // Escuelas Medievales
+  "Escolástica", "Nominalismo", "Realismo Medieval", "Agustinismo", "Tomismo", "Filosofía Islámica", "Filosofía Judía Medieval",
+  
+  // Escuelas Modernas
+  "Racionalismo", "Empirismo", "Idealismo", "Materialismo", "Criticismo Kantiano", "Idealismo Alemán", "Romanticismo Filosófico",
+  
+  // Escuelas Contemporáneas
+  "Existencialismo", "Fenomenología", "Filosofía Analítica", "Filosofía Continental", "Pragmatismo", "Positivismo", "Positivismo Lógico", "Estructuralismo", "Postmodernismo", "Postcolonialismo", "Feminismo Filosófico", "Filosofía de la Liberación",
+  
+  // Corrientes Específicas
+  "Utilitarismo", "Deontología", "Ética de la Virtud", "Contractualismo", "Comunitarismo", "Liberalismo", "Marxismo", "Anarquismo", "Personalismo", "Vitalismo", "Pragmatismo Americano",
+  
+  // Filosofías No-Occidentales
+  "Confucianismo", "Taoísmo", "Budismo", "Hinduismo Filosófico", "Zen", "Vedanta", "Samkhya", "Yoga Filosófico", "Escuela de Kyoto", "Filosofía Islámica Contemporánea",
+  
+  // Corrientes Recientes
+  "Filosofía Cognitiva", "Bioética", "Filosofía Ambiental", "Filosofía de la Tecnología", "Filosofía de la Ciencia", "Filosofía del Lenguaje", "Filosofía de la Mente", "Filosofía Política Contemporánea"
+]
+
+const DEBATE_MECHANICS = [
+  { value: "socratic_dialogue", label: "Diálogo Socrático", description: "Preguntas que llevan a la reflexión profunda" },
+  { value: "dialectical", label: "Dialéctico", description: "Tesis, antítesis y síntesis hegeliana" },
+  { value: "analytical", label: "Analítico", description: "Descomposición lógica rigurosa" },
+  { value: "rhetorical", label: "Retórico", description: "Persuasión y elocuencia clásica" },
+  { value: "contemplative", label: "Contemplativo", description: "Reflexión profunda y pausada" },
+  { value: "provocative", label: "Provocativo", description: "Desafía preconceptos directamente" }
+]
+
+// Atributos trade-off base con descripciones contextuales para extremos
+const BASE_TRADEOFF_ATTRIBUTES: TradeOffAttribute[] = [
+  { 
+    name: "Actitud hacia el Cambio", 
+    leftExtreme: "Conservador", 
+    rightExtreme: "Revolucionario", 
+    value: 5,
+    description: "Define si prefiere mantener tradiciones establecidas o busca transformar radicalmente las ideas",
+    leftDescription: "Conservador: Respeta y preserva tradiciones, valores y métodos establecidos. Prefiere evolución gradual antes que cambios abruptos.",
+    rightDescription: "Revolucionario: Busca transformaciones radicales del pensamiento. Cuestiona todo lo establecido y propone nuevos paradigmas."
+  },
+  { 
+    name: "Enfoque Cognitivo", 
+    leftExtreme: "Estructurado", 
+    rightExtreme: "Creativo", 
+    value: 5,
+    description: "Determina si aborda problemas de manera sistemática y organizada o con pensamiento lateral e innovador",
+    leftDescription: "Estructurado: Aborda problemas de manera sistemática y organizada. Sigue procesos lógicos y metodologías establecidas.",
+    rightDescription: "Creativo: Utiliza pensamiento lateral e innovador. Encuentra conexiones inusuales y genera ideas originales."
+  },
+  { 
+    name: "Estilo de Razonamiento", 
+    leftExtreme: "Analítico", 
+    rightExtreme: "Sintético", 
+    value: 5,
+    description: "Indica si descompone ideas en partes para estudiarlas o las integra para crear nuevas perspectivas",
+    leftDescription: "Analítico: Descompone ideas complejas en elementos más simples para estudiarlos detalladamente.",
+    rightDescription: "Sintético: Integra diferentes elementos y perspectivas para crear nuevas visiones holísticas."
+  },
+  { 
+    name: "Método de Conocimiento", 
+    leftExtreme: "Sistemático", 
+    rightExtreme: "Intuitivo", 
+    value: 5,
+    description: "Refleja si construye conocimiento paso a paso con rigor metodológico o mediante insights y percepciones",
+    leftDescription: "Sistemático: Construye conocimiento paso a paso con rigor metodológico. Sigue procesos verificables y reproducibles.",
+    rightDescription: "Intuitivo: Adquiere conocimiento mediante insights, percepciones e iluminaciones súbitas. Confía en la intuición filosófica."
+  },
+  { 
+    name: "Orientación Práctica", 
+    leftExtreme: "Pragmático", 
+    rightExtreme: "Idealista", 
+    value: 5,
+    description: "Establece si se enfoca en soluciones realistas y aplicables o en principios abstractos y visiones elevadas",
+    leftDescription: "Pragmático: Se enfoca en soluciones realistas y aplicables. Prioriza lo que funciona en la práctica.",
+    rightDescription: "Idealista: Se guía por principios abstractos y visiones elevadas. Busca la perfección conceptual antes que la utilidad inmediata."
+  }
+]
+
+// Presets de tonos de comunicación (sin duplicados con mecánicas de debate)
+const COMMUNICATION_TONE_PRESETS = [
+  { value: "formal", label: "Formal", description: "Utiliza un lenguaje académico, preciso y respetuoso en todos los intercambios" },
+  { value: "informal", label: "Informal", description: "Adopta un estilo relajado y coloquial, usando expresiones cotidianas y un lenguaje accesible" },
+  { value: "cercano", label: "Cercano", description: "Adopta un estilo conversacional, cálido y accesible que invita al diálogo personal" },
+  { value: "distante", label: "Distante", description: "Mantiene una separación emocional, usando un tono objetivo y profesionalmente reservado" },
+  { value: "didactico", label: "Didáctico", description: "Explica conceptos complejos de manera clara y estructurada, como un maestro paciente" },
+  { value: "ironico", label: "Irónico", description: "Emplea sarcasmo sutil y humor mordaz para hacer sus puntos más memorables e impactantes" },
+  { value: "poetico", label: "Poético", description: "Utiliza metáforas, imágenes vívidas y un lenguaje evocativo y artísticamente expresivo" },
+  { value: "neutro", label: "Neutro", description: "Mantiene una posición equilibrada e imparcial, evitando sesgos emocionales evidentes" },
+  { value: "custom", label: "Personalizado", description: "Define tu propio tono único" }
+]
+
+// Atributos precargados según la inspiración con valores trade-off
+const getPreloadedAttributes = (source: string, type: 'philosopher' | 'school'): TradeOffAttribute[] => {
+  const baseAttributes = [...BASE_TRADEOFF_ATTRIBUTES]
+
+  // Configuraciones específicas para filósofos famosos (valores ajustados al nuevo orden)
+  const philosopherConfigs: Record<string, Partial<Record<string, number>>> = {
+    "Sócrates": {
+      "Enfoque Cognitivo": 7,     // Más creativo
+      "Orientación Práctica": 6,  // Ligeramente idealista
+      "Método de Conocimiento": 8, // Muy intuitivo
+      "Actitud hacia el Cambio": 7, // Algo revolucionario
+      "Estilo de Razonamiento": 7   // Más sintético
+    },
+    "Platón": {
+      "Enfoque Cognitivo": 8,     // Muy creativo
+      "Orientación Práctica": 8,  // Muy idealista
+      "Método de Conocimiento": 4, // Ligeramente sistemático
+      "Actitud hacia el Cambio": 6, // Moderadamente revolucionario
+      "Estilo de Razonamiento": 8   // Muy sintético
+    },
+    "Aristóteles": {
+      "Enfoque Cognitivo": 4,     // Ligeramente estructurado
+      "Orientación Práctica": 4,  // Ligeramente pragmático
+      "Método de Conocimiento": 2, // Muy sistemático
+      "Actitud hacia el Cambio": 4, // Algo conservador
+      "Estilo de Razonamiento": 2   // Muy analítico
+    },
+    "Kant": {
+      "Enfoque Cognitivo": 6,     // Equilibrado
+      "Orientación Práctica": 6,  // Ligeramente idealista
+      "Método de Conocimiento": 1, // Extremadamente sistemático
+      "Actitud hacia el Cambio": 7, // Revolucionario
+      "Estilo de Razonamiento": 1   // Extremadamente analítico
+    },
+    "Nietzsche": {
+      "Enfoque Cognitivo": 9,     // Extremadamente creativo
+      "Orientación Práctica": 5,  // Neutral
+      "Método de Conocimiento": 8, // Muy intuitivo
+      "Actitud hacia el Cambio": 9, // Extremadamente revolucionario
+      "Estilo de Razonamiento": 8   // Muy sintético
+    },
+    "Descartes": {
+      "Enfoque Cognitivo": 6,     // Ligeramente creativo
+      "Orientación Práctica": 7,  // Idealista
+      "Método de Conocimiento": 3, // Sistemático
+      "Actitud hacia el Cambio": 7, // Revolucionario
+      "Estilo de Razonamiento": 3   // Analítico
+    },
+    "Hume": {
+      "Enfoque Cognitivo": 7,     // Creativo
+      "Orientación Práctica": 3,  // Pragmático
+      "Método de Conocimiento": 7, // Intuitivo
+      "Actitud hacia el Cambio": 6, // Moderadamente revolucionario
+      "Estilo de Razonamiento": 4   // Ligeramente analítico
+    },
+    "Marx": {
+      "Enfoque Cognitivo": 7,     // Creativo
+      "Orientación Práctica": 2,  // Muy pragmático
+      "Método de Conocimiento": 4, // Ligeramente sistemático
+      "Actitud hacia el Cambio": 10, // Extremadamente revolucionario
+      "Estilo de Razonamiento": 6   // Ligeramente sintético
+    }
+  }
+
+  // Configuraciones para escuelas filosóficas (valores ajustados al nuevo orden)
+  const schoolConfigs: Record<string, Partial<Record<string, number>>> = {
+    "Estoicismo": {
+      "Enfoque Cognitivo": 3,     // Estructurado
+      "Orientación Práctica": 2,  // Muy pragmático
+      "Método de Conocimiento": 4, // Ligeramente sistemático
+      "Actitud hacia el Cambio": 2, // Conservador
+      "Estilo de Razonamiento": 4   // Ligeramente analítico
+    },
+    "Existencialismo": {
+      "Enfoque Cognitivo": 8,     // Muy creativo
+      "Orientación Práctica": 7,  // Idealista
+      "Método de Conocimiento": 8, // Muy intuitivo
+      "Actitud hacia el Cambio": 8, // Muy revolucionario
+      "Estilo de Razonamiento": 7   // Sintético
+    },
+    "Pragmatismo": {
+      "Enfoque Cognitivo": 5,     // Neutral
+      "Orientación Práctica": 1,  // Extremadamente pragmático
+      "Método de Conocimiento": 5, // Neutral
+      "Actitud hacia el Cambio": 6, // Moderadamente revolucionario
+      "Estilo de Razonamiento": 3   // Analítico
+    },
+    "Idealismo": {
+      "Enfoque Cognitivo": 8,     // Muy creativo
+      "Orientación Práctica": 9,  // Extremadamente idealista
+      "Método de Conocimiento": 7, // Intuitivo
+      "Actitud hacia el Cambio": 7, // Revolucionario
+      "Estilo de Razonamiento": 8   // Muy sintético
+    },
+    "Empirismo": {
+      "Enfoque Cognitivo": 4,     // Ligeramente estructurado
+      "Orientación Práctica": 3,  // Pragmático
+      "Método de Conocimiento": 3, // Sistemático
+      "Actitud hacia el Cambio": 6, // Moderadamente revolucionario
+      "Estilo de Razonamiento": 2   // Muy analítico
+    },
+    "Racionalismo": {
+      "Enfoque Cognitivo": 6,     // Ligeramente creativo
+      "Orientación Práctica": 7,  // Idealista
+      "Método de Conocimiento": 2, // Muy sistemático
+      "Actitud hacia el Cambio": 5, // Neutral
+      "Estilo de Razonamiento": 1   // Extremadamente analítico
+    }
+  }
+
+  const config = type === 'philosopher' ? philosopherConfigs[source] : schoolConfigs[source]
+  
+  if (config) {
+    return baseAttributes.map(attr => ({
+      ...attr,
+      value: config[attr.name] ?? attr.value
+    }))
+  }
+  
+  return baseAttributes
+}
+
+// Función para obtener la etiqueta de valor según la posición en el trade-off
+const getTradeOffLabel = (attribute: TradeOffAttribute): string => {
+  if (attribute.value <= 2) return attribute.leftExtreme
+  if (attribute.value >= 8) return attribute.rightExtreme
+  return 'Equilibrado'
+}
+
+// Función para generar color según el valor (0-10)
+  // Componente simple de tooltip agrandado y más ancho
+  const Tooltip = ({ children, content }: { children: React.ReactNode; content: string }) => (
+    <div className="group relative inline-block">
+      {children}
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-slate-900 text-white text-base rounded-lg border border-slate-600 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 max-w-md w-80 text-left leading-relaxed">
+        {content}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+      </div>
+    </div>
+  )
+
+  const getValueColor = (value: number, max: number = 10): string => {
+  const percentage = value / max
+  
+  if (percentage <= 0.3) {
+    // Celeste para valores bajos (0-30%)
+    return 'rgb(34, 211, 238)' // sky-400
+  } else if (percentage <= 0.7) {
+    // Amarillo/Naranja para valores medios (30-70%)
+    const blendFactor = (percentage - 0.3) / 0.4
+    const r = Math.round(34 + (251 - 34) * blendFactor)  // sky-400 to yellow-400
+    const g = Math.round(211 + (191 - 211) * blendFactor)
+    const b = Math.round(238 + (36 - 238) * blendFactor)
+    return `rgb(${r}, ${g}, ${b})`
+  } else {
+    // Rojo para valores altos (70-100%)
+    const blendFactor = (percentage - 0.7) / 0.3
+    const r = Math.round(251 + (239 - 251) * blendFactor)  // yellow-400 to red-500
+    const g = Math.round(191 + (68 - 191) * blendFactor)
+    const b = Math.round(36 + (68 - 36) * blendFactor)
+    return `rgb(${r}, ${g}, ${b})`
+  }
+}
+
+interface PhilosopherWizardProps {
+  onComplete: (data: PhilosopherData) => void | Promise<void>
+  onCancel: () => void
+  initialData?: Partial<PhilosopherData>
+}
+
+export default function PhilosopherWizard({ onComplete, onCancel, initialData }: PhilosopherWizardProps) {
+  const [currentStep, setCurrentStep] = useState(1)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [needsRegeneration, setNeedsRegeneration] = useState(false)
+  const [searchValue, setSearchValue] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([])
+  const [selectedIndex, setSelectedIndex] = useState(-1) // 🎯 Para navegación con teclado
+  const [isDragging, setIsDragging] = useState(false) // Para drag & drop de imágenes
+  
+  const [data, setData] = useState<PhilosopherData>(() => {
+    const defaultData: PhilosopherData = {
+      name: '',
+      inspirationType: '' as 'philosopher' | 'school' | '',
+      inspirationSource: '',
+      attributes: [],
+      communicationTone: { preset: 'formal', description: 'Utiliza un lenguaje académico, preciso y respetuoso en todos los intercambios' },
+      secretSauce: '',
+      debateMechanics: 'socratic_dialogue',
+      personalityScores: [],
+      generatedDescription: '',
+      isPublic: false
+    }
+    
+    const mergedData = { ...defaultData, ...initialData }
+    
+    // Log para debug
+    if (initialData?.attributes?.length) {
+      console.log('🎯 Inicializando wizard con atributos personalizados:', initialData.attributes)
+    }
+    
+    return mergedData
+  })
+
+  // 🔄 SINCRONIZACIÓN DE ESTADO
+  useEffect(() => {
+    if (data.inspirationSource && data.inspirationSource !== searchValue) {
+      setSearchValue(data.inspirationSource)
+    }
+  }, [data.inspirationSource])
+
+  // 🔥 MANEJO INTELIGENTE DE REGENERACIÓN EN PÁGINA 5
+  useEffect(() => {
+    if (currentStep === 5) {
+      // Verificar si tenemos un formulario completo
+      const hasCompleteForm = Boolean(
+        data.name && 
+        data.inspirationSource && 
+        data.attributes.length > 0 && 
+        data.secretSauce && 
+        data.debateMechanics
+      )
+      
+      // Verificar si ya tenemos un perfil generado
+      const hasGeneratedProfile = Boolean(
+        data.personalityScores.length > 0 && 
+        data.generatedDescription
+      )
+      
+      console.log('📊 Estado de página 5:', {
+        hasCompleteForm,
+        hasGeneratedProfile,
+        needsRegeneration,
+        isGenerating,
+        attributesCount: data.attributes.length,
+        personalityScoresCount: data.personalityScores.length
+      })
+      
+      // NO auto-generar - solo mostrar el estado actual
+      if (hasCompleteForm && !hasGeneratedProfile && !isGenerating) {
+        console.log('🎯 Mostrando botón "Generar Perfil Filosófico" - SIN auto-generación')
+        setNeedsRegeneration(true)
+      } else if (!hasCompleteForm) {
+        console.log('⚠️ Formulario incompleto en página 5')
+      } else if (hasGeneratedProfile && !needsRegeneration) {
+        console.log('✅ Perfil ya generado en página 5')
+        setNeedsRegeneration(false)
+      } else if (isGenerating) {
+        console.log('⏳ Ya generando perfil...')
+      }
+    }
+  }, [currentStep, data.personalityScores.length, data.generatedDescription, needsRegeneration, isGenerating])
+
+  const updateData = (updates: Partial<PhilosopherData>) => {
+    setData(prev => ({ ...prev, ...updates }))
+  }
+
+  // 🔍 FUNCIONES DE AUTOCOMPLETE
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value)
+    setSelectedIndex(-1) // 🔄 Reset selección al cambiar búsqueda
+    
+    if (value.trim().length > 0) {
+      const currentList = data.inspirationType === 'philosopher' ? FAMOUS_PHILOSOPHERS : PHILOSOPHICAL_SCHOOLS
+      const filtered = currentList
+        .filter(item => item.toLowerCase().includes(value.toLowerCase()))
+        .sort((a, b) => a.localeCompare(b)) // 🔤 ORDEN ALFABÉTICO
+      setFilteredSuggestions(filtered)
+      setShowSuggestions(true)
+    } else {
+      setFilteredSuggestions([])
+      setShowSuggestions(false)
+    }
+  }
+
+  const handleSuggestionSelect = (suggestion: string) => {
+    setSearchValue(suggestion)
+    updateData({ inspirationSource: suggestion })
+    setShowSuggestions(false)
+  }
+
+  const handleSearchBlur = () => {
+    // ⏱️ DELAY MÁS LARGO para permitir click en sugerencias
+    setTimeout(() => {
+      setShowSuggestions(false)
+      // Si hay texto y no está en la lista, usar como personalizado
+      if (searchValue.trim()) {
+        updateData({ inspirationSource: searchValue.trim() })
+      }
+    }, 300) // Aumentado de 200ms a 300ms
+  }
+
+  // Función mejorada para forzar actualización al cambiar de campo
+  const handleInputBlur = () => {
+    if (searchValue.trim() && searchValue !== data.inspirationSource) {
+      updateData({ inspirationSource: searchValue.trim() })
+    }
+  }
+
+  // Funciones para drag & drop de imágenes
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleFileDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = Array.from(e.dataTransfer.files)
+    const imageFile = files.find(file => file.type.startsWith('image/'))
+    
+    if (imageFile) {
+      // Convertir a base64 o upload a servidor
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const result = event.target?.result as string
+        updateData({ photoUrl: result })
+      }
+      reader.readAsDataURL(imageFile)
+    }
+  }
+
+  const handleSearchFocus = () => {
+    if (searchValue.trim().length > 0) {
+      const currentList = data.inspirationType === 'philosopher' ? FAMOUS_PHILOSOPHERS : PHILOSOPHICAL_SCHOOLS
+      const filtered = currentList
+        .filter(item => item.toLowerCase().includes(searchValue.toLowerCase()))
+        .sort((a, b) => a.localeCompare(b)) // 🔤 ORDEN ALFABÉTICO
+      setFilteredSuggestions(filtered)
+      setShowSuggestions(true)
+    }
+  }
+
+  // ⌨️ NAVEGACIÓN CON TECLADO
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || filteredSuggestions.length === 0) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedIndex(prev => 
+          prev < filteredSuggestions.length - 1 ? prev + 1 : 0
+        )
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedIndex(prev => 
+          prev > 0 ? prev - 1 : filteredSuggestions.length - 1
+        )
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (selectedIndex >= 0 && selectedIndex < filteredSuggestions.length) {
+          handleSuggestionSelect(filteredSuggestions[selectedIndex])
+        } else if (searchValue.trim()) {
+          handleSuggestionSelect(searchValue.trim())
+        }
+        break
+      case 'Escape':
+        setShowSuggestions(false)
+        setSelectedIndex(-1)
+        break
+    }
+  }
+
+  const nextStep = () => {
+    if (currentStep < 5) {
+      // Cuando salimos de página 1: Cargar atributos predeterminados si es necesario
+      if (currentStep === 1) {
+        console.log('📍 Saliendo de página 1 (Inspiración)')
+        
+        if (data.inspirationSource && data.inspirationType) {
+          const hasCustomizedAttributes = data.attributes.length > 0 && 
+            data.attributes.some(attr => attr.value !== 5)
+          
+          if (!hasCustomizedAttributes) {
+            const preloadedAttributes = getPreloadedAttributes(data.inspirationSource, data.inspirationType as 'philosopher' | 'school')
+            updateData({ attributes: preloadedAttributes })
+            console.log('🔄 Cargando atributos predeterminados para:', data.inspirationSource)
+          } else {
+            console.log('✋ Conservando atributos personalizados existentes')
+          }
+        }
+      }
+      
+      // 🔥 SOLUCIÓN SIMPLE: SIEMPRE limpiar página 5 cuando llegamos a ella
+      const nextPageNumber = currentStep + 1
+      if (nextPageNumber === 5) {
+        console.log('🧹 SIEMPRE limpiando página 5 al llegar')
+        updateData({ 
+          personalityScores: [],
+          generatedDescription: ''
+        })
+      }
+      
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const generateFinalResult = async () => {
+    setIsGenerating(true)
+    try {
+      const response = await fetch('/api/admin/philosophers/generate-final-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          inspirationSource: data.inspirationSource,
+          inspirationType: data.inspirationType,
+          attributes: data.attributes,
+          secretSauce: data.secretSauce,
+          debateMechanics: data.debateMechanics
+        })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        updateData({ 
+          personalityScores: result.personalityScores,
+          generatedDescription: result.description,
+          generatedFields: result.fields
+        })
+      }
+    } catch (error) {
+      console.error('Error generating final result:', error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1:
+        return data.name.trim().length > 0 && data.inspirationSource.trim().length > 0 && data.inspirationType
+      case 2:
+        return data.attributes.length > 0
+      case 3:
+        return data.debateMechanics && data.communicationTone.description.trim().length > 0
+      case 4:
+        return data.secretSauce.trim().length > 0
+      case 5:
+        return data.personalityScores.length > 0 && data.generatedDescription.trim().length > 0
+      default:
+        return false
+    }
+  }
+
+  const handleComplete = async () => {
+    try {
+      // 🔥 FORZAR REGENERACIÓN SI NO HAY PERFIL ACTUAL
+      let finalData = data
+      if (!data.personalityScores.length || !data.generatedDescription) {
+        console.log('🔄 No hay perfil generado, forzando regeneración antes de completar...')
+        await generateFinalResult()
+        // Esperar a que se actualice el estado
+        finalData = { ...data, personalityScores: data.personalityScores, generatedDescription: data.generatedDescription }
+      }
+      
+      await onComplete(finalData)
+    } catch (error) {
+      console.error('Error al completar wizard:', error)
+    }
+  }
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="name" className="text-white">Nombre del Pensador *</Label>
+              <Input
+                id="name"
+                value={data.name}
+                onChange={(e) => updateData({ name: e.target.value })}
+                placeholder="ej. Sócrates Digital, Neo-Platón..."
+                className="mt-2"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-white">Foto del Pensador (opcional)</Label>
+              <div 
+                className={`mt-2 p-6 border-2 border-dashed rounded-lg transition-colors ${
+                  isDragging 
+                    ? 'border-purple-400 bg-purple-500/10' 
+                    : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                }`}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleFileDrop}
+              >
+                {data.photoUrl ? (
+                  <div className="flex items-center gap-4">
+                    <img 
+                      src={data.photoUrl} 
+                      alt="Preview" 
+                      className="w-16 h-16 rounded-full object-cover border-2 border-slate-300"
+                    />
+                    <div className="flex-1">
+                      <p className="text-white font-medium">Imagen cargada</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={() => updateData({ photoUrl: '' })}
+                      >
+                        Quitar imagen
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <Camera className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                    <div className="text-white font-medium mb-2">
+                      {isDragging ? 'Suelta la imagen aquí' : 'Arrastra una imagen aquí'}
+                    </div>
+                    <p className="text-slate-400 text-sm">
+                      Soporta JPG, PNG, GIF hasta 5MB
+                    </p>
+                    <div className="mt-4">
+                      <label className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer transition-colors">
+                        <Camera className="w-4 h-4 mr-2" />
+                        Seleccionar archivo
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onload = () => {
+                                const result = reader.result as string
+                                updateData({ photoUrl: result })
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-white">Tipo de Inspiración *</Label>
+              <div className="mt-2 grid grid-cols-2 gap-4">
+                <div
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    data.inspirationType === 'philosopher'
+                      ? 'border-purple-500 bg-purple-500/20' 
+                      : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                  }`}
+                  onClick={() => {
+                    updateData({ inspirationType: 'philosopher', inspirationSource: '' })
+                    setSearchValue('')
+                    setShowSuggestions(false)
+                    setFilteredSuggestions([])
+                  }}
+                >
+                                      <div className="font-medium text-white">Pensador Específico</div>
+                                      <div className="text-sm text-slate-400">Inspirado en un pensador histórico</div>
+                </div>
+                <div
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    data.inspirationType === 'school'
+                      ? 'border-purple-500 bg-purple-500/20' 
+                      : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                  }`}
+                  onClick={() => {
+                    updateData({ inspirationType: 'school', inspirationSource: '' })
+                    setSearchValue('')
+                    setShowSuggestions(false)
+                    setFilteredSuggestions([])
+                  }}
+                >
+                  <div className="font-medium text-white">Escuela Filosófica</div>
+                  <div className="text-sm text-slate-400">Basado en una corriente de pensamiento</div>
+                </div>
+              </div>
+            </div>
+
+            {data.inspirationType && (
+              <div>
+                <Label className="text-white">
+                  {data.inspirationType === 'philosopher' ? 'Pensador' : 'Escuela Filosófica'} *
+                </Label>
+                
+                <div className="relative mt-2">
+                  <Input
+                    value={searchValue}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    onFocus={handleSearchFocus}
+                    onBlur={(e) => {
+                      handleSearchBlur()
+                      handleInputBlur()
+                    }}
+                    onKeyDown={handleKeyDown}
+                    placeholder={`Busca o escribe el nombre del ${data.inspirationType === 'philosopher' ? 'pensador' : 'escuela filosófica'}...`}
+                    className="w-full"
+                  />
+                  
+                  {showSuggestions && filteredSuggestions.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                      {filteredSuggestions.slice(0, 10).map((suggestion, index) => (
+                        <div
+                          key={index}
+                          className={`px-4 py-3 cursor-pointer text-white border-b border-slate-700 last:border-b-0 ${
+                            selectedIndex === index 
+                              ? 'bg-purple-600 text-white' // 🎯 Elemento seleccionado con teclado
+                              : 'hover:bg-slate-700'
+                          }`}
+                          onMouseDown={(e) => {
+                            e.preventDefault() // 🛡️ Evita que se dispare onBlur
+                            handleSuggestionSelect(suggestion)
+                          }}
+                          onMouseEnter={() => setSelectedIndex(index)} // 🖱️ Sincroniza mouse con teclado
+                        >
+                          <div className="font-medium">{suggestion}</div>
+                          {suggestion.toLowerCase().includes(searchValue.toLowerCase()) && (
+                            <div className="text-xs text-slate-400 mt-1">
+                              {data.inspirationType === 'philosopher' ? 'Pensador' : 'Escuela Filosófica'}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {filteredSuggestions.length > 10 && (
+                        <div className="px-4 py-2 text-slate-400 text-sm border-t border-slate-700">
+                          y {filteredSuggestions.length - 10} más... Sigue escribiendo para filtrar
+                        </div>
+                      )}
+                      
+                      {searchValue.trim() && !filteredSuggestions.some(s => s.toLowerCase() === searchValue.toLowerCase()) && (
+                        <div 
+                          className="px-4 py-3 bg-purple-500/10 border-t border-purple-500/30 cursor-pointer hover:bg-purple-500/20"
+                          onMouseDown={(e) => {
+                            e.preventDefault() // 🛡️ Evita que se dispare onBlur
+                            handleSuggestionSelect(searchValue.trim())
+                          }}
+                        >
+                          <div className="text-purple-300 font-medium">✏️ Usar: "{searchValue}"</div>
+                          <div className="text-purple-400 text-xs mt-1">Crear nuevo {data.inspirationType === 'philosopher' ? 'pensador' : 'escuela'} personalizado</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {searchValue.trim() && !showSuggestions && (
+                    <div className="mt-2 text-sm text-slate-400">
+                      {(data.inspirationType === 'philosopher' ? FAMOUS_PHILOSOPHERS : PHILOSOPHICAL_SCHOOLS).includes(searchValue.trim()) 
+                        ? `✓ ${data.inspirationType === 'philosopher' ? 'Pensador' : 'Escuela'} encontrado en la lista`
+                        : `✏️ Se usará "${searchValue}" como ${data.inspirationType === 'philosopher' ? 'pensador' : 'escuela'} personalizado`
+                      }
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="mb-6">
+              <h3 className="text-lg font-medium text-white">Atributos Trade-off</h3>
+              <p className="text-sm text-slate-400">
+                Estos extremos han sido preconfigurados según tu inspiración en <strong>{data.inspirationSource}</strong>. 
+                Ajusta cada trade-off según tu visión del filósofo.
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              {data.attributes.map((attribute, index) => (
+                <div key={index} className="p-6 border border-slate-600 rounded-lg bg-slate-700/50">
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="text-lg font-medium text-white">{attribute.name}</Label>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <Tooltip content={attribute.leftDescription || `Prefiere ${attribute.leftExtreme.toLowerCase()}`}>
+                        <span className="text-sm text-cyan-400 font-medium cursor-help">{attribute.leftExtreme}</span>
+                      </Tooltip>
+                      <Tooltip content={attribute.rightDescription || `Prefiere ${attribute.rightExtreme.toLowerCase()}`}>
+                        <span className="text-sm text-red-400 font-medium cursor-help">{attribute.rightExtreme}</span>
+                      </Tooltip>
+                    </div>
+                  </div>
+                  
+                  <div className="relative">
+                    <Slider
+                      value={[attribute.value]}
+                      onValueChange={(value) => {
+                        const newAttributes = [...data.attributes]
+                        newAttributes[index].value = value[0]
+                        updateData({ attributes: newAttributes })
+                      }}
+                      max={10}
+                      min={0}
+                      step={1}
+                      className="mt-2"
+                    />
+                    
+                    <div className="flex justify-between text-xs text-slate-500 mt-2">
+                      <span>0</span>
+                      <span className="font-bold text-white">{attribute.value}</span>
+                      <span>10</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <MessageSquare className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2">Mecánicas y Tono</h3>
+              <p className="text-slate-300">
+                Define cómo tu pensador argumenta, debate y se comunica con otros
+              </p>
+            </div>
+
+            {/* Mecánicas de Debate */}
+            <div>
+              <h4 className="text-lg font-medium text-white mb-4">Mecánicas de Debate</h4>
+              <p className="text-sm text-slate-400 mb-6">
+                Selecciona cómo debatirá y argumentará tu pensador
+              </p>
+              
+              <div className="space-y-3">
+                {DEBATE_MECHANICS.map(mechanic => (
+                  <div
+                    key={mechanic.value}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                      data.debateMechanics === mechanic.value 
+                        ? 'border-blue-500 bg-blue-500/20' 
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                    onClick={() => updateData({ debateMechanics: mechanic.value })}
+                  >
+                    <div className="font-medium text-white">{mechanic.label}</div>
+                    <div className="text-sm text-slate-400">{mechanic.description}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tono de Comunicación */}
+            <div className="p-6 border border-slate-600 rounded-lg bg-slate-700/50">
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Volume2 className="w-5 h-5 text-orange-400" />
+                  <Label className="text-lg font-medium text-white">Tono de Comunicación</Label>
+                  <Tooltip content="Define cómo se expresa tu pensador: su estilo verbal, actitud y manera de comunicarse">
+                    <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-300 cursor-help" />
+                  </Tooltip>
+                </div>
+                <p className="text-sm text-slate-400">
+                  Selecciona un preset o define tu propio tono personalizado
+                </p>
+              </div>
+              
+              {/* Presets de tonos */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                {COMMUNICATION_TONE_PRESETS.map(preset => (
+                  <Tooltip key={preset.value} content={preset.description}>
+                    <div
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors text-center ${
+                        data.communicationTone.preset === preset.value
+                          ? 'border-orange-500 bg-orange-500/20' 
+                          : 'border-slate-600 hover:border-slate-500 bg-slate-800/50'
+                      }`}
+                      onClick={() => {
+                        if (preset.value === 'custom') {
+                          updateData({ 
+                            communicationTone: { 
+                              preset: 'custom', 
+                              description: '' 
+                            } 
+                          })
+                        } else {
+                          updateData({ 
+                            communicationTone: { 
+                              preset: preset.value, 
+                              description: preset.description 
+                            } 
+                          })
+                        }
+                      }}
+                    >
+                      <div className="font-medium text-white text-sm">{preset.label}</div>
+                    </div>
+                  </Tooltip>
+                ))}
+              </div>
+              
+              {/* Campo de descripción personalizada */}
+              <div>
+                <Label className="text-white text-sm">
+                  {data.communicationTone.preset === 'custom' ? 'Define tu tono personalizado' : 'Descripción del tono'}
+                </Label>
+                <Textarea
+                  value={data.communicationTone.description}
+                  onChange={(e) => updateData({ 
+                    communicationTone: { 
+                      ...data.communicationTone, 
+                      description: e.target.value 
+                    } 
+                  })}
+                  placeholder={data.communicationTone.preset === 'custom' 
+                    ? "Describe el tono único de comunicación de tu pensador..."
+                    : "Puedes ajustar o personalizar la descripción del tono..."
+                  }
+                  className="mt-2 min-h-[80px]"
+                  disabled={data.communicationTone.preset !== 'custom' && data.communicationTone.description === COMMUNICATION_TONE_PRESETS.find(p => p.value === data.communicationTone.preset)?.description}
+                />
+                <div className="mt-2 text-xs text-slate-400">
+                  {data.communicationTone.description.length}/200 caracteres recomendados
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <Wand2 className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2">Salsa Secreta</h3>
+                            <p className="text-slate-300">
+                Aquí es donde agregas tu toque personal único. ¿Qué hace especial a tu pensador? 
+                ¿Cuál es su enfoque distintivo que lo diferencia de otros?
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="secretSauce" className="text-white">Tu Toque Único *</Label>
+              <Textarea
+                id="secretSauce"
+                value={data.secretSauce}
+                onChange={(e) => updateData({ secretSauce: e.target.value })}
+                placeholder="Describe qué hace único y especial a tu pensador. Su enfoque distintivo, su perspectiva particular, su método especial de argumentación..."
+                className="mt-2 min-h-[150px]"
+              />
+              <div className="mt-2 text-sm text-slate-400">
+                {data.secretSauce.length}/500 caracteres recomendados
+              </div>
+            </div>
+          </div>
+        )
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-purple-500/20 rounded-full mb-4">
+                <Sparkles className="w-10 h-10 text-purple-400" />
+              </div>
+              <h3 className="text-3xl font-bold text-white mb-3">🧬 Síntesis Filosófica</h3>
+              <p className="text-slate-300 text-lg leading-relaxed max-w-2xl mx-auto mb-6">
+                Nuestro LLM analizará todos los elementos de tu filósofo para crear una personalidad única y coherente
+              </p>
+              
+              {/* Botón de generación movido aquí */}
+              {!data.personalityScores.length && (
+                <div className="mb-8">
+                  <Button 
+                    onClick={generateFinalResult}
+                    disabled={isGenerating}
+                    size="lg"
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Sparkles className="w-6 h-6 mr-3 animate-spin" />
+                        Sintetizando Personalidad...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-6 h-6 mr-3" />
+                        Generar Perfil Filosófico
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-slate-400 text-sm mt-3">
+                    Este proceso toma unos segundos. El LLM está analizando todos los elementos para crear una personalidad única.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Animación durante procesamiento */}
+            {isGenerating && (
+              <div className="space-y-8">
+                {/* Header de procesamiento */}
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full mb-4 animate-pulse">
+                    <Sparkles className="w-10 h-10 text-purple-400 animate-spin" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">🧠 Procesando Personalidad Filosófica</h3>
+                  <p className="text-purple-200">Nuestro LLM está analizando todos los elementos para crear una personalidad única...</p>
+                </div>
+
+                {/* Proceso animado */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-lg border border-blue-500/30 animate-pulse">
+                    <Brain className="w-8 h-8 text-blue-400 mx-auto mb-2 animate-bounce" />
+                    <h4 className="text-blue-300 font-medium text-sm">Analizando Trade-offs</h4>
+                    <p className="text-blue-200 text-xs mt-1">{data.attributes.length} atributos filosóficos</p>
+                  </div>
+
+                  <div className="text-center p-4 bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-lg border border-purple-500/30 animate-pulse">
+                    <Zap className="w-8 h-8 text-purple-400 mx-auto mb-2 animate-bounce" style={{animationDelay: '0.2s'}} />
+                    <h4 className="text-purple-300 font-medium text-sm">Fusionando Elementos</h4>
+                    <p className="text-purple-200 text-xs mt-1">Inspiración + Salsa Secreta</p>
+                  </div>
+
+                  <div className="text-center p-4 bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-lg border border-orange-500/30 animate-pulse">
+                    <Volume2 className="w-8 h-8 text-orange-400 mx-auto mb-2 animate-bounce" style={{animationDelay: '0.4s'}} />
+                    <h4 className="text-orange-300 font-medium text-sm">Definiendo Tono</h4>
+                    <p className="text-orange-200 text-xs mt-1">{data.communicationTone.preset}</p>
+                  </div>
+
+                  <div className="text-center p-4 bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-lg border border-green-500/30 animate-pulse">
+                    <Target className="w-8 h-8 text-green-400 mx-auto mb-2 animate-bounce" style={{animationDelay: '0.6s'}} />
+                    <h4 className="text-green-300 font-medium text-sm">Generando Perfil</h4>
+                    <p className="text-green-200 text-xs mt-1">Síntesis final</p>
+                  </div>
+                </div>
+
+                {/* Progreso animado */}
+                <div className="bg-slate-700/20 rounded-lg p-6 border border-slate-600">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-white font-semibold flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-slate-400" />
+                      Elementos en procesamiento:
+                    </h4>
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 opacity-75">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
+                        <span className="text-slate-300">Nombre:</span>
+                        <span className="text-white font-medium">{data.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-75">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-ping" style={{animationDelay: '0.1s'}}></div>
+                        <span className="text-slate-300">Inspiración:</span>
+                        <span className="text-white font-medium">{data.inspirationSource}</span>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-75">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-ping" style={{animationDelay: '0.2s'}}></div>
+                        <span className="text-slate-300">Mecánica:</span>
+                        <span className="text-white font-medium">{DEBATE_MECHANICS.find(m => m.value === data.debateMechanics)?.label}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 opacity-75">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full animate-ping" style={{animationDelay: '0.3s'}}></div>
+                        <span className="text-slate-300">Tono:</span>
+                        <span className="text-white font-medium">{COMMUNICATION_TONE_PRESETS.find(p => p.value === data.communicationTone.preset)?.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-75">
+                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{animationDelay: '0.4s'}}></div>
+                        <span className="text-slate-300">Trade-offs:</span>
+                        <span className="text-white font-medium">{data.attributes.length} configurados</span>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-75">
+                        <div className="w-2 h-2 bg-pink-400 rounded-full animate-ping" style={{animationDelay: '0.5s'}}></div>
+                        <span className="text-slate-300">Personalización:</span>
+                        <span className="text-white font-medium">Activa</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!data.personalityScores.length && !isGenerating && (
+              <div className="space-y-8">
+                {/* Proceso explicativo */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center p-6 bg-slate-700/30 rounded-lg border border-slate-600">
+                    <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-500/20 rounded-lg mb-4">
+                      <Brain className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <h4 className="text-white font-semibold mb-2">Análisis de Trade-offs</h4>
+                    <p className="text-slate-400 text-sm">
+                      Procesa los {data.attributes.length} atributos filosóficos y sus valores para crear un perfil psicológico único
+                    </p>
+                  </div>
+
+                  <div className="text-center p-6 bg-slate-700/30 rounded-lg border border-slate-600">
+                    <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-500/20 rounded-lg mb-4">
+                      <Zap className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <h4 className="text-white font-semibold mb-2">Fusión de Elementos</h4>
+                    <p className="text-slate-400 text-sm">
+                      Combina inspiración ({data.inspirationSource}), salsa secreta, tono y mecánicas de debate
+                    </p>
+                  </div>
+
+                  <div className="text-center p-6 bg-slate-700/30 rounded-lg border border-slate-600">
+                    <div className="inline-flex items-center justify-center w-12 h-12 bg-green-500/20 rounded-lg mb-4">
+                      <Target className="w-6 h-6 text-green-400" />
+                    </div>
+                    <h4 className="text-white font-semibold mb-2">Generación Final</h4>
+                    <p className="text-slate-400 text-sm">
+                      Crea descripción, puntajes de personalidad y define el estilo argumentativo único
+                    </p>
+                  </div>
+                </div>
+
+                {/* Resumen de datos */}
+                <div className="bg-slate-700/20 rounded-lg p-6 border border-slate-600">
+                  <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-slate-400" />
+                    Datos que se procesarán:
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <span className="text-slate-300">Nombre:</span>
+                        <span className="text-white font-medium">{data.name || 'Sin definir'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <span className="text-slate-300">Inspiración:</span>
+                        <span className="text-white font-medium">{data.inspirationSource || 'Sin definir'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <span className="text-slate-300">Mecánica de debate:</span>
+                        <span className="text-white font-medium">{DEBATE_MECHANICS.find(m => m.value === data.debateMechanics)?.label || 'Sin definir'}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <span className="text-slate-300">Tono de comunicación:</span>
+                        <span className="text-white font-medium">{COMMUNICATION_TONE_PRESETS.find(p => p.value === data.communicationTone.preset)?.label || 'Personalizado'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <span className="text-slate-300">Trade-offs configurados:</span>
+                        <span className="text-white font-medium">{data.attributes.length} atributos</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <span className="text-slate-300">Salsa secreta:</span>
+                        <span className="text-white font-medium">{data.secretSauce ? 'Definida' : 'Sin definir'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {data.personalityScores.length > 0 && (
+              <div className="space-y-8">
+                {/* Éxito en la generación */}
+                <div className="text-center p-6 bg-green-500/10 border border-green-500/30 rounded-lg">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-400" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">¡Pensador Generado Exitosamente!</h4>
+                                <p className="text-green-200">
+                Tu pensador {data.name} está listo para debatir con una personalidad única
+              </p>
+                </div>
+
+                {/* Puntajes de personalidad */}
+                <div className="bg-slate-700/20 rounded-lg p-6 border border-slate-600">
+                  <h4 className="text-xl font-medium text-white mb-6 flex items-center gap-2">
+                    <User className="w-5 h-5 text-purple-400" />
+                    Puntajes de Personalidad
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {data.personalityScores.map((score, index) => (
+                      <div key={index} className="text-center p-4 bg-slate-800/50 rounded-lg border border-slate-600">
+                        <div className="text-2xl font-bold text-purple-400 mb-1">{score.value}/5</div>
+                        <div className="text-white font-medium">{score.name}</div>
+                        <div className="w-full bg-slate-600 rounded-full h-2 mt-2">
+                          <div 
+                            className="h-2 rounded-full transition-all duration-500" 
+                            style={{ 
+                              width: `${(score.value / 5) * 100}%`,
+                              backgroundColor: getValueColor(score.value, 5)
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Trade-offs aplicados */}
+                <div className="bg-slate-700/20 rounded-lg p-6 border border-slate-600">
+                  <h4 className="text-xl font-medium text-white mb-6 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-blue-400" />
+                    Trade-offs Filosóficos
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {data.attributes.map((attr, index) => (
+                      <div key={index} className="p-4 bg-slate-800/50 rounded-lg border border-slate-600">
+                        <div className="text-white font-medium mb-2">{attr.name}</div>
+                        <div className="text-sm text-slate-400 mb-2">
+                          {getTradeOffLabel(attr)} ({attr.value}/10)
+                        </div>
+                        <div className="w-full bg-slate-600 rounded-full h-2">
+                          <div 
+                            className="bg-purple-500 h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${(attr.value / 10) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Descripción generada */}
+                <div className="bg-slate-700/20 rounded-lg p-6 border border-slate-600">
+                  <h4 className="text-xl font-medium text-white mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-green-400" />
+                    Descripción Filosófica
+                  </h4>
+                  <div className="p-6 bg-slate-800/50 rounded-lg border border-slate-600">
+                    <p className="text-slate-200 leading-relaxed text-lg">{data.generatedDescription}</p>
+                  </div>
+                </div>
+
+                {/* Campos generados por LLM - coreBeliefs, argumentStyle */}
+                {data.generatedFields && (
+                  <>
+                    {/* Creencias Fundamentales (coreBeliefs) */}
+                    {data.generatedFields.coreBeliefs && (
+                      <div className="bg-slate-700/20 rounded-lg p-6 border border-slate-600">
+                        <h4 className="text-xl font-medium text-white mb-4 flex items-center gap-2">
+                          <BookOpen className="w-5 h-5 text-cyan-400" />
+                          Creencias Fundamentales
+                        </h4>
+                        <div className="p-6 bg-slate-800/50 rounded-lg border border-slate-600">
+                          {Array.isArray(data.generatedFields.coreBeliefs) ? (
+                            <ul className="space-y-3">
+                              {data.generatedFields.coreBeliefs.map((belief, index) => (
+                                <li 
+                                  key={index}
+                                  className="flex items-start gap-3 text-slate-200"
+                                >
+                                  <div className="w-2 h-2 bg-cyan-400 rounded-full mt-2 flex-shrink-0" />
+                                  <span className="leading-relaxed">{belief}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-slate-200 leading-relaxed">{data.generatedFields.coreBeliefs}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Estilo Argumentativo (argumentStyle) */}
+                    {data.generatedFields.argumentStyle && (
+                      <div className="bg-slate-700/20 rounded-lg p-6 border border-slate-600">
+                        <h4 className="text-xl font-medium text-white mb-4 flex items-center gap-2">
+                          <MessageSquare className="w-5 h-5 text-orange-400" />
+                          Estilo Argumentativo
+                        </h4>
+                        <div className="p-6 bg-orange-500/10 rounded-lg border border-orange-500/30">
+                          <p className="text-orange-100 leading-relaxed text-lg">{data.generatedFields.argumentStyle}</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Salsa secreta */}
+                {data.secretSauce && (
+                  <div className="bg-slate-700/20 rounded-lg p-6 border border-slate-600">
+                    <h4 className="text-xl font-medium text-white mb-4 flex items-center gap-2">
+                      <Wand2 className="w-5 h-5 text-purple-400" />
+                      Salsa Secreta
+                    </h4>
+                    <div className="p-6 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                      <p className="text-purple-100 leading-relaxed text-lg italic">{data.secretSauce}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tono de Comunicación */}
+                {data.communicationTone && (
+                  <div className="bg-slate-700/20 rounded-lg p-6 border border-slate-600">
+                    <h4 className="text-xl font-medium text-white mb-4 flex items-center gap-2">
+                      <Volume2 className="w-5 h-5 text-orange-400" />
+                      Tono de Comunicación
+                    </h4>
+                    <div className="p-6 bg-orange-500/10 rounded-lg border border-orange-500/30">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="px-3 py-1 bg-orange-500/20 text-orange-200 rounded-full text-sm border border-orange-500/30">
+                          {COMMUNICATION_TONE_PRESETS.find(p => p.value === data.communicationTone.preset)?.label || 'Personalizado'}
+                        </span>
+                      </div>
+                      <p className="text-orange-100 leading-relaxed text-lg">{data.communicationTone.description}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Configuración de visibilidad */}
+                <div className="bg-slate-700/20 rounded-lg p-6 border border-slate-600">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Globe className="w-5 h-5 text-blue-400" />
+                      <div>
+                        <Label className="text-white text-lg font-medium">Hacer Público</Label>
+                        <p className="text-slate-400">Otros usuarios podrán usar este filósofo en sus debates</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={data.isPublic}
+                      onCheckedChange={(checked) => updateData({ isPublic: checked })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+              🧪 Laboratorio de Pensadores
+              <Sparkles className="w-8 h-8 text-purple-400" />
+            </h1>
+            <p className="text-slate-300 text-lg">
+              Crea tu pensador personalizado con trade-offs filosóficos
+            </p>
+          </div>
+
+          {/* Progress Steps */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              {WIZARD_STEPS.map((step, index) => (
+                <div key={step.id} className="flex items-center">
+                  <div
+                    className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                      currentStep >= step.id
+                        ? 'border-purple-500 bg-purple-500 text-white'
+                        : 'border-slate-600 text-slate-400'
+                    }`}
+                  >
+                    {step.icon}
+                  </div>
+                  {index < WIZARD_STEPS.length - 1 && (
+                    <div
+                      className={`w-16 h-0.5 mx-2 ${
+                        currentStep > step.id ? 'bg-purple-500' : 'bg-slate-600'
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-4">
+              <h2 className="text-2xl font-semibold text-white">
+                {WIZARD_STEPS[currentStep - 1].title}
+              </h2>
+              <p className="text-slate-300">
+                {WIZARD_STEPS[currentStep - 1].description}
+              </p>
+            </div>
+          </div>
+
+          {/* Step Content */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-6 border border-slate-700 mb-8">
+            {renderStep()}
+          </div>
+
+          {/* Navigation */}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              onClick={currentStep === 1 ? onCancel : prevStep}
+              className="bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              {currentStep === 1 ? 'Cancelar' : 'Anterior'}
+            </Button>
+
+            <div className="text-sm text-slate-400">
+              Paso {currentStep} de {WIZARD_STEPS.length}
+            </div>
+
+            <Button
+              onClick={currentStep === WIZARD_STEPS.length ? handleComplete : nextStep}
+              disabled={!canProceed()}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {currentStep === WIZARD_STEPS.length ? 'Crear Pensador' : 'Siguiente'}
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

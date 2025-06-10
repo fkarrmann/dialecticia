@@ -24,3 +24,53 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ✨ Scrollbar personalizado para mantener coherencia con la estética de la app */
+.scrollbar-custom {
+  scrollbar-width: thin;
+  scrollbar-color: #6b46c1 #1e293b;
+}
+
+.scrollbar-custom::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8b5cf6 0%, #6b46c1 100%);
+  border-radius: 4px;
+  border: 1px solid #334155;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
+}
+
+/* Scrollbar más pequeño para textarea */
+.scrollbar-custom-small {
+  scrollbar-width: thin;
+  scrollbar-color: #6b46c1 #374151;
+}
+
+.scrollbar-custom-small::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-custom-small::-webkit-scrollbar-track {
+  background: #374151;
+  border-radius: 3px;
+}
+
+.scrollbar-custom-small::-webkit-scrollbar-thumb {
+  background: #6b46c1;
+  border-radius: 3px;
+  border: 1px solid #4b5563;
+}
+
+.scrollbar-custom-small::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
+}

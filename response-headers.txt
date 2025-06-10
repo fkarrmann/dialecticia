@@ -1,0 +1,8 @@
+HTTP/1.1 200 OK
+content-type: application/json
+set-cookie: dialecticia-session=9e71ef0b7224c7da4d8fbae609f6ff5934cc3bad5435b3be24921f5d51928f3c; Path=/; Expires=Thu, 05 Jun 2025 00:58:09 GMT; Max-Age=604800; HttpOnly; SameSite=strict
+Date: Thu, 29 May 2025 00:58:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { generatePhilosopherResponse } from '@/lib/llm'
+import { getCurrentSession } from '@/lib/auth'
 
 const createMessageSchema = z.object({
   content: z.string().min(1, 'El mensaje no puede estar vacío'),
@@ -9,28 +10,45 @@ const createMessageSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { params } = context
   try {
+    // Verificar autenticación
+    const session = await getCurrentSession()
+    if (!session) {
+      return NextResponse.json({
+        success: false,
+        error: 'No autenticado',
+      }, { status: 401 })
+    }
+
+    const params = await context.params
+    const debateId = params.id
+    
     const body = await request.json()
     const validatedData = createMessageSchema.parse(body)
-    const debateId = params.id
 
-    // Verificar que el debate existe
-    const debate = await prisma.debate.findUnique({
-      where: { id: debateId },
+    // Verificar que el debate existe y pertenece al usuario
+    const debate = await prisma.debate.findFirst({
+      where: {
+        id: debateId,
+        userId: session.user.id
+      },
       include: {
-        participants: {
-          include: {
-            philosopher: true,
-          },
-        },
         messages: {
           include: {
             philosopher: true,
           },
           orderBy: { timestamp: 'asc' },
+        },
+        participants: {
+          include: {
+            philosopher: {
+              include: {
+                personalityAspects: true
+              }
+            }
+          },
         },
       },
     })
@@ -42,23 +60,33 @@ export async function POST(
       }, { status: 404 })
     }
 
+    // Obtener el filósofo del debate (solo debería haber uno)
+    const philosopher = debate.participants[0]?.philosopher
+    
+    if (!philosopher) {
+      return NextResponse.json({
+        success: false,
+        error: 'No se encontró filósofo en el debate',
+      }, { status: 500 })
+    }
+
     // Obtener el último número de turno
     const lastTurn = debate.messages.length > 0 
       ? Math.max(...debate.messages.map(m => m.turnNumber))
       : 0
 
     // Crear el mensaje del usuario
-    const userMessage = await prisma.message.create({
+    await prisma.message.create({
       data: {
         content: validatedData.content,
         senderType: 'USER',
         debateId: debateId,
         turnNumber: lastTurn + 1,
+        userId: session.user.id,
       },
     })
 
-    // Generar respuestas de los filósofos
-    const philosophers = debate.participants.map(p => p.philosopher)
+    // Preparar historial de conversación
     const conversationHistory = debate.messages.map(msg => ({
       sender: msg.senderType === 'USER' ? 'Usuario' : 
               msg.philosopher ? msg.philosopher.name : 'Sistema',
@@ -73,88 +101,74 @@ export async function POST(
       timestamp: new Date(),
     })
 
-    const philosopherResponses = []
+    // Generar respuesta del filósofo
+    console.log(`🤖 ${philosopher.name}: responde al usuario`)
+    const philosopherResponse = await generatePhilosopherResponse(
+      philosopher,
+      debate.topic,
+      conversationHistory,
+      validatedData.content,
+      'SOCRATIC_TO_USER'
+    )
 
-    // Generar respuesta del primer filósofo
-    if (philosophers[0]) {
-      const response1 = await generatePhilosopherResponse(
-        philosophers[0],
-        debate.topic,
-        conversationHistory,
-        validatedData.content
-      )
-
-      const philMessage1 = await prisma.message.create({
-        data: {
-          content: response1.content,
-          senderType: 'PHILOSOPHER',
-          debateId: debateId,
-          philosopherId: philosophers[0].id,
-          turnNumber: lastTurn + 2,
-        },
-      })
-
-      philosopherResponses.push(philMessage1)
-      
-      // Agregar al historial para el segundo filósofo
-      conversationHistory.push({
-        sender: philosophers[0].name,
-        content: response1.content,
-        timestamp: new Date(),
-      })
-    }
-
-    // Generar respuesta del segundo filósofo
-    if (philosophers[1]) {
-      const response2 = await generatePhilosopherResponse(
-        philosophers[1],
-        debate.topic,
-        conversationHistory,
-        validatedData.content
-      )
-
-      const philMessage2 = await prisma.message.create({
-        data: {
-          content: response2.content,
-          senderType: 'PHILOSOPHER',
-          debateId: debateId,
-          philosopherId: philosophers[1].id,
-          turnNumber: lastTurn + 3,
-        },
-      })
-
-      philosopherResponses.push(philMessage2)
-    }
-
-    // Actualizar estado del debate si es necesario
-    if (debate.status === 'TOPIC_CLARIFICATION' && debate.messages.length >= 2) {
-      await prisma.debate.update({
-        where: { id: debateId },
-        data: { status: 'ACTIVE_DEBATE' },
-      })
-    }
-
-    // Obtener todos los mensajes para la respuesta
-    const allMessages = await prisma.message.findMany({
-      where: { debateId },
-      include: {
-        philosopher: true,
-        votes: true,
+    await prisma.message.create({
+      data: {
+        content: philosopherResponse.content,
+        senderType: 'PHILOSOPHER',
+        debateId: debateId,
+        philosopherId: philosopher.id,
+        turnNumber: lastTurn + 2,
+        userId: session.user.id,
       },
-      orderBy: { timestamp: 'asc' },
+    })
+
+    // Obtener debate actualizado
+    const updatedDebate = await prisma.debate.findUnique({
+      where: { id: debateId },
+      include: {
+        messages: {
+          include: {
+            philosopher: true,
+            votes: true,
+          },
+          orderBy: { timestamp: 'asc' },
+        },
+        participants: {
+          include: {
+            philosopher: {
+              include: {
+                personalityAspects: true
+              }
+            }
+          },
+        },
+      },
     })
 
     return NextResponse.json({
       success: true,
-      data: {
-        userMessage,
-        philosopherResponses,
-        allMessages,
-      },
+      data: updatedDebate,
     })
 
   } catch (error) {
     console.error('Error creating message:', error)
+    
+    // Detectar errores de debugging de prompts
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    if (errorMessage.includes('PROMPT_DEBUGGING_ERROR:')) {
+      console.error('🔥 DEBUGGING ERROR CAUGHT IN API ROUTE:', errorMessage)
+      
+      // Extraer solo la parte útil del mensaje
+      const cleanMessage = errorMessage.replace('PROMPT_DEBUGGING_ERROR: ', '')
+      
+      return NextResponse.json({
+        success: false,
+        error: 'Error de debugging: Prompt desactivado',
+        message: cleanMessage,
+        type: 'PROMPT_DEBUGGING_ERROR',
+        details: 'Este error es esperado durante debugging. Activa el prompt desde el panel de administración.'
+      }, { status: 422 })
+    }
     
     if (error instanceof z.ZodError) {
       return NextResponse.json({
@@ -173,12 +187,29 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { params } = context
   try {
+    // Verificar autenticación
+    const session = await getCurrentSession()
+    if (!session) {
+      return NextResponse.json({
+        success: false,
+        error: 'No autenticado',
+      }, { status: 401 })
+    }
+
+    const params = await context.params
+    const debateId = params.id
+
+    // Obtener mensajes del debate solo si pertenece al usuario
     const messages = await prisma.message.findMany({
-      where: { debateId: params.id },
+      where: {
+        debateId,
+        debate: {
+          userId: session.user.id
+        }
+      },
       include: {
         philosopher: true,
         votes: true,

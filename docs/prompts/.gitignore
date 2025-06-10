@@ -1,0 +1,8 @@
+# Cache de transformación
+.prompts-cache
+
+# JSON generado automáticamente (no commitear)
+generated-prompts.json
+
+# Directorio de versiones/backups (opcional commitear)
+versions/ 

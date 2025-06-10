@@ -1,16 +1,100 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, Sparkles } from 'lucide-react'
+import { ArrowLeft, User, Sparkles } from 'lucide-react'
+
+interface Philosopher {
+  id: string
+  name: string
+  description: string
+  philosophicalSchool: string
+  isActive: boolean
+}
 
 export default function NewDebatePage() {
   const router = useRouter()
   const [topic, setTopic] = useState('')
   const [description, setDescription] = useState('')
+  const [selectedPhilosopherId, setSelectedPhilosopherId] = useState('')
+  const [philosophers, setPhilosophers] = useState<Philosopher[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingPhilosophers, setIsLoadingPhilosophers] = useState(true)
+  const [isSuggestingPhilosopher, setIsSuggestingPhilosopher] = useState(false)
+  const [suggestion, setSuggestion] = useState<{
+    reasoning: string
+    suggestedPhilosopherId: string
+  } | null>(null)
   const [error, setError] = useState('')
+
+  // Cargar filósofos disponibles
+  useEffect(() => {
+    const loadPhilosophers = async () => {
+      try {
+        const response = await fetch('/api/philosophers')
+        const result = await response.json()
+        
+        if (result.success) {
+          const activePhilosophers = result.data.filter((p: Philosopher) => p.isActive)
+          setPhilosophers(activePhilosophers)
+          
+          // Seleccionar el primer filósofo como default
+          if (activePhilosophers.length > 0) {
+            setSelectedPhilosopherId(activePhilosophers[0].id)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading philosophers:', error)
+        setError('Error cargando filósofos disponibles')
+      } finally {
+        setIsLoadingPhilosophers(false)
+      }
+    }
+
+    loadPhilosophers()
+  }, [])
+
+  // Función para solicitar sugerencia de filósofo
+  const suggestPhilosopher = async () => {
+    if (!topic.trim() || !description.trim()) {
+      setError('Completa el tema y tu punto de vista para obtener una sugerencia')
+      return
+    }
+
+    setIsSuggestingPhilosopher(true)
+    setError('')
+    setSuggestion(null)
+
+    try {
+      const response = await fetch('/api/philosophers/suggest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          topic: topic.trim(),
+          userPosition: description.trim(),
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSuggestion({
+          reasoning: result.data.reasoning,
+          suggestedPhilosopherId: result.data.suggestedPhilosopherId
+        })
+        setSelectedPhilosopherId(result.data.suggestedPhilosopherId)
+      } else {
+        setError(result.error || 'Error al obtener sugerencia')
+      }
+    } catch (err) {
+      setError('Error de conexión al solicitar sugerencia')
+    } finally {
+      setIsSuggestingPhilosopher(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,7 +109,8 @@ export default function NewDebatePage() {
         },
         body: JSON.stringify({
           topic: topic.trim(),
-          description: description.trim() || undefined,
+          description: description.trim(),
+          selectedPhilosopherId,
         }),
       })
 
@@ -67,10 +152,10 @@ export default function NewDebatePage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-white">
-              Nuevo Debate Socrático
+              Nuevo Debate Filosófico
             </h1>
             <p className="text-slate-300">
-              Propón un tema y deja que los filósofos desafíen tus ideas
+              Define tu tema, expresa tu punto de vista y elige un filósofo para el debate
             </p>
           </div>
         </div>
@@ -80,36 +165,138 @@ export default function NewDebatePage() {
             {/* Formulario */}
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-6 border border-slate-700">
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Tema del Debate */}
                 <div>
                   <label htmlFor="topic" className="block text-sm font-medium text-slate-300 mb-2">
-                    Tema del Debate *
+                    📝 Tema del Debate *
                   </label>
                   <textarea
                     id="topic"
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    placeholder="¿Cuál es tu posición o idea que quieres debatir?"
+                    placeholder="¿Cuál es el tema que quieres debatir? Ej: ¿Es la libertad de expresión absoluta?"
                     className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                     rows={3}
                     required
                   />
                   <p className="text-xs text-slate-400 mt-1">
-                    Mínimo 3 caracteres. Sé específico para obtener mejores respuestas.
+                    Sé específico para obtener mejores respuestas del filósofo.
                   </p>
                 </div>
 
+                {/* Tu Punto de Vista */}
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-2">
-                    Descripción Adicional (Opcional)
+                    💭 Tu Punto de Vista *
                   </label>
                   <textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Explica más detalles sobre tu posición o contexto específico..."
+                    placeholder="Explica tu posición sobre este tema. Este será el punto de vista que el filósofo desafiará..."
                     className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                    rows={2}
+                    rows={4}
+                    required
                   />
+                  <p className="text-xs text-slate-400 mt-1">
+                    Tu punto de vista será la base del diálogo filosófico. Sé claro y específico.
+                  </p>
+                </div>
+
+                {/* Selector de Filósofo */}
+                <div>
+                  <label htmlFor="philosopher" className="block text-sm font-medium text-slate-300 mb-2">
+                    🧠 Filósofo para el Debate *
+                  </label>
+                  
+                  {/* Botón de sugerencia inteligente */}
+                  <div className="mb-4">
+                    <button
+                      type="button"
+                      onClick={suggestPhilosopher}
+                      disabled={isSuggestingPhilosopher || !topic.trim() || !description.trim()}
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center"
+                    >
+                      {isSuggestingPhilosopher ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Analizando tu postura...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5 mr-2" />
+                          🤖 Sugerir Filósofo Antagónico con IA
+                        </>
+                      )}
+                    </button>
+                    <p className="text-xs text-slate-400 mt-2 text-center">
+                      {!topic.trim() || !description.trim() 
+                        ? 'Completa el tema y tu postura para obtener una sugerencia inteligente' 
+                        : 'La IA analizará tu postura y sugerirá el filósofo más desafiante'
+                      }
+                    </p>
+                  </div>
+
+                  {/* Mostrar razonamiento de la sugerencia */}
+                  {suggestion && (
+                    <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-lg">
+                      <div className="flex items-start space-x-3">
+                        <Sparkles className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-purple-300 uppercase tracking-wide mb-1">
+                            💡 Sugerencia IA
+                          </p>
+                          <p className="text-sm text-slate-200 leading-relaxed">
+                            {suggestion.reasoning}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selector manual */}
+                  <div>
+                    <p className="text-sm text-slate-300 mb-2">O selecciona manualmente:</p>
+                    {isLoadingPhilosophers ? (
+                      <div className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400 mr-2"></div>
+                        <span className="text-slate-400">Cargando filósofos...</span>
+                      </div>
+                    ) : (
+                      <select
+                        id="philosopher"
+                        value={selectedPhilosopherId}
+                        onChange={(e) => setSelectedPhilosopherId(e.target.value)}
+                        className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        required
+                      >
+                        <option value="">-- Selecciona un filósofo --</option>
+                        {philosophers.map((philosopher) => (
+                          <option key={philosopher.id} value={philosopher.id}>
+                            {philosopher.name} - {philosopher.philosophicalSchool}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Información del filósofo seleccionado */}
+                  {selectedPhilosopherId && (
+                    <div className="mt-3 p-3 bg-slate-700/30 rounded-lg border border-slate-600">
+                      {(() => {
+                        const selectedPhil = philosophers.find(p => p.id === selectedPhilosopherId)
+                        return selectedPhil ? (
+                          <div>
+                            <p className="text-sm text-slate-200 font-medium">{selectedPhil.name}</p>
+                            <p className="text-xs text-slate-400 mt-1">{selectedPhil.description}</p>
+                            <p className="text-xs text-purple-400 mt-2">
+                              Escuela: {selectedPhil.philosophicalSchool}
+                            </p>
+                          </div>
+                        ) : null
+                      })()}
+                    </div>
+                  )}
                 </div>
 
                 {error && (
@@ -120,7 +307,7 @@ export default function NewDebatePage() {
 
                 <button
                   type="submit"
-                  disabled={isLoading || topic.length < 3}
+                  disabled={isLoading || topic.length < 3 || description.length < 10 || !selectedPhilosopherId}
                   className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
                 >
                   {isLoading ? (
@@ -130,7 +317,7 @@ export default function NewDebatePage() {
                     </>
                   ) : (
                     <>
-                      <Users className="w-5 h-5 mr-2" />
+                      <User className="w-5 h-5 mr-2" />
                       Iniciar Debate
                     </>
                   )}
@@ -165,11 +352,11 @@ export default function NewDebatePage() {
                   💡 Consejos para un Buen Debate
                 </h3>
                 <ul className="space-y-2 text-sm text-slate-300">
-                  <li>• Sé específico en tu posición inicial</li>
-                  <li>• Los filósofos seleccionarán automáticamente para máximo contraste</li>
+                  <li>• Define claramente el tema que quieres debatir</li>
+                  <li>• Explica tu posición de manera específica y detallada</li>
+                  <li>• Usa la IA para encontrar el filósofo más desafiante</li>
+                  <li>• Cada filósofo tiene su estilo único de argumentación</li>
                   <li>• Prepárate para defender tus ideas con argumentos sólidos</li>
-                  <li>• Mantén la mente abierta a nuevas perspectivas</li>
-                  <li>• El objetivo es aprender, no ganar</li>
                 </ul>
               </div>
             </div>
