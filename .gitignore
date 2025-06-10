@@ -3,12 +3,8 @@
 # dependencies
 /node_modules
 /.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+.pnp.js
+.yarn/install-state.gz
 
 # testing
 /coverage
@@ -28,11 +24,10 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
-!.env.example
+# local env files
+.env
+.env*.local
 
 # vercel
 .vercel
@@ -41,24 +36,18 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/src/generated/prisma
-
-# Database files
-*.db
-*.db.*
+# Prisma
+/prisma/dev.db
+/prisma/dev.db-journal
 /prisma/*.db
-/prisma/*.db.*
-dev.db
-dev.db.*
+/prisma/*.db-journal
 
-# Logs and debug files
-*.log
-debug-*.js
-test-*.js
-watch-*.sh
-start-*.sh
-setup-*.js
-cookies*.txt
-response-*.txt
-schema-*.sql
-data-*.sql
+# Prisma generated files and cache
+/node_modules/.prisma/
+/node_modules/@prisma/
+/prisma/generated/
+.prisma/
+
+# Cache directories
+/.turbo/
+/.cache/

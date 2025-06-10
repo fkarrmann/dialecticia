@@ -1,3 +1,4 @@
+// Schema updated: 2025-01-19 - PostgreSQL ONLY
 generator client {
   provider = "prisma-client-js"
 }

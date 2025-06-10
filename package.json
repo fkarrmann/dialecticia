@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3001",
-    "build": "rm -rf .next && rm -rf node_modules/.prisma && prisma generate && next build --no-lint",
+    "build": "rm -rf .next && rm -rf node_modules/.prisma && rm -rf node_modules/@prisma && npx prisma generate --no-engine && next build --no-lint",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate",
+    "postinstall": "npx prisma generate --no-engine",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "npx prisma db push --force-reset && npm run db:seed",
     "db:seed-philosophers": "node scripts/seed-philosophers.js",
@@ -26,7 +26,6 @@
     "puppeteer": "^24.9.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sqlite3": "^5.1.7",
     "tailwind-merge": "^3.3.0",
     "zod": "^3.25.28",
     "zustand": "^5.0.5"
