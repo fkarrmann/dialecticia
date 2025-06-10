@@ -1,14 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { Database, Bot, FileText, BarChart3, Settings } from 'lucide-react'
+import { Database, Bot, FileText, BarChart3, Settings, Clock } from 'lucide-react'
 import LLMProvidersManager from './LLMProvidersManager'
 import LLMModelsManager from './LLMModelsManager'
 import LLMPromptsManager from './LLMPromptsManager'
 import LLMMetricsDashboard from './LLMMetricsDashboard'
 import LLMConfigurationsManager from './LLMConfigurationsManager'
+import { SocraticTimelineEditor } from './SocraticTimelineEditor'
 
-type TabType = 'providers' | 'models' | 'prompts' | 'configurations' | 'metrics'
+type TabType = 'providers' | 'models' | 'prompts' | 'configurations' | 'timeline' | 'metrics'
 
 const tabs = [
   {
@@ -36,6 +37,12 @@ const tabs = [
     description: 'Configuraciones de funciones LLM'
   },
   {
+    id: 'timeline' as TabType,
+    label: 'Timeline Socrático',
+    icon: Clock,
+    description: 'Editor visual de etapas conversacionales socráticas'
+  },
+  {
     id: 'metrics' as TabType,
     label: 'Métricas',
     icon: BarChart3,
@@ -56,6 +63,8 @@ export default function LLMManagementDashboard() {
         return <LLMPromptsManager />
       case 'configurations':
         return <LLMConfigurationsManager />
+      case 'timeline':
+        return <SocraticTimelineEditor />
       case 'metrics':
         return <LLMMetricsDashboard />
       default:

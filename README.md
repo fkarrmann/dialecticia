@@ -1,203 +1,158 @@
-# Dialecticia - Plataforma de Debates Filosóficos
+# 🏛️ Dialecticia
 
-## 🎯 **Descripción**
+**Plataforma de diálogo socrático con filósofos virtuales basada en IA**
 
-Dialecticia es una plataforma de debates filosóficos donde los usuarios pueden interactuar con filósofos virtuales powered by AI, basada en personalidades auténticas y metodologías de pensamiento reales.
+Una aplicación web innovadora que permite a los usuarios participar en debates filosóficos profundos con filósofos virtuales impulsados por inteligencia artificial, utilizando la metodología socrática clásica adaptada para el siglo XXI.
 
-## 🚀 **Características Principales**
+## ✨ Características Principales
 
-- **🤖 Filósofos AI Auténticos**: Sócrates, Platón, Aristóteles, Nietzsche y más
-- **💭 Debates Socráticos**: Metodología de questioning socrático
-- **🧠 Personalidades Complejas**: Cada filósofo tiene traits de personalidad únicos
-- **🎮 Sistema de Gamificación**: Aspectos de personalidad y progresión
-- **👑 Sistema de Administración**: Control completo de prompts y LLMs
-- **🔍 Sistema de Debugging**: Control y debugging de prompts en tiempo real
-- **📄 Exportación PDF Profesional**: Exporta debates como PDFs profesionales con diseño branded
+### 🎭 Filósofos Virtuales
+- **18+ filósofos únicos** con personalidades auténticas basadas en escuelas filosóficas reales
+- Cada filósofo tiene **aspectos de personalidad únicos** y **trade-offs filosóficos** específicos
+- Sistemas de **creencias fundamentales** y **enfoques argumentativos** distintivos
 
-## 🛠️ **Tecnologías**
+### 🌟 Timeline Socrático
+- **Sistema de etapas progresivas** que guía el diálogo siguiendo el método socrático auténtico:
+  - **Bienvenida**: Invitación al debate
+  - **Provocación**: Formulación de preguntas fundamentales
+  - **Definición**: Exploración de conceptos clave
+  - **Élenchos**: Refutación y contradicciones
+  - **Aporía**: Reconocimiento de la ignorancia
+  - **Búsqueda**: Construcción colaborativa de conocimiento
 
-- **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
+### 🎛️ Panel de Administración Avanzado
+- **Gestión de LLM**: Configuración de proveedores de IA (Anthropic Claude, OpenAI, etc.)
+- **Editor de Timeline Visual**: Interfaz intuitiva para configurar las etapas socráticas
+- **Sistema de Presets**: Configuraciones predefinidas (Académico, Moderno, Intenso)
+- **Gestión de Invitaciones**: Sistema de códigos de acceso y control de usuarios
+
+### 🤖 Integración de IA Avanzada
+- **Múltiples proveedores LLM** soportados
+- **Prompts dinámicos** adaptados por etapa y personalidad del filósofo
+- **Sistema de compatibilidad** entre Timeline Socrático y personalidades tradicionales
+- **Métricas y costos** de uso de IA en tiempo real
+
+## 🛠️ Stack Tecnológico
+
+- **Frontend**: Next.js 15, React 18, TypeScript
 - **Backend**: Next.js API Routes, Prisma ORM
-- **Base de Datos**: PostgreSQL
-- **AI**: Anthropic Claude, OpenAI GPT
-- **Autenticación**: Next-Auth
-- **UI**: Radix UI, Lucide Icons
+- **Base de Datos**: SQLite (desarrollo) / PostgreSQL (producción)
+- **UI**: Tailwind CSS, Radix UI, Lucide Icons
+- **IA**: Anthropic Claude, OpenAI GPT
+- **Deployment**: Vercel
 
-## 📦 **Instalación**
+## 🚀 Instalación y Configuración
 
+### Prerrequisitos
+- Node.js 18+
+- npm o yarn
+- SQLite (desarrollo)
+
+### Instalación
+
+1. **Clonar repositorio**
 ```bash
-# Clonar repositorio
-git clone [repository-url]
+git clone https://github.com/fkarrmann/dialecticia.git
 cd dialecticia
+```
 
-# Instalar dependencias
+2. **Instalar dependencias**
+```bash
 npm install
+```
 
-# Configurar variables de entorno
+3. **Configurar variables de entorno**
+```bash
 cp .env.example .env.local
-# Editar .env.local con tus credenciales
+```
 
-# Configurar base de datos
-npx prisma generate
-npx prisma db push
+Editar `.env.local` con tus claves de API:
+```env
+DATABASE_URL="file:./dev.db"
+ANTHROPIC_API_KEY="your_anthropic_key_here"
+OPENAI_API_KEY="your_openai_key_here"
+NEXTAUTH_SECRET="your_nextauth_secret"
+NEXTAUTH_URL="http://localhost:3001"
+```
 
-# Iniciar servidor de desarrollo
+4. **Configurar base de datos**
+```bash
+npx prisma migrate deploy
+npx prisma db seed
+```
+
+5. **Ejecutar en desarrollo**
+```bash
 npm run dev
 ```
 
-## 🎮 **Uso del Sistema**
+La aplicación estará disponible en `http://localhost:3001`
 
-### **Inicio Rápido**
-```bash
-# Iniciar con logs detallados
-./start-dev-with-logs.sh
-
-# Solo logs de debugging
-./watch-debug-logs.sh
-```
-
-### **Administración**
-- Panel de administración: `/admin/llm-management`
-- Gestión de prompts: Control de activación/desactivación
-- Métricas de LLM: Costos y uso de tokens
-- Gestión de filósofos: Aspectos de personalidad
-
-### **Sistema de Debugging de Prompts** 🔍
-- **Activar/Desactivar prompts** desde la UI administrativa
-- **Logs detallados** de qué prompts se usan en cada interacción
-- **Errores específicos** cuando prompts están desactivados
-- **Visualización diferenciada** de errores de debugging vs errores reales
-
-### **Exportación PDF Profesional** 📄
-- **PDFs profesionales** con diseño branded de Dialecticia
-- **Layout optimizado** A4 con márgenes profesionales y paginación inteligente
-- **Rasgos de personalidad** con escala 0-5 visualizada en barras atractivas
-- **Trade-offs filosóficos** personalizados por filósofo con indicadores elegantes
-- **Información completa** de filósofos (creencias, estilos, mecánicas)
-- **Diferenciación visual** entre usuario (azul) y filósofo (púrpura)
-- **Estructura limpia** sin duplicaciones y layout optimizado
-- **Metadatos completos** y optimización para impresión
-- **Compatibilidad universal** con todos los lectores de PDF
-
-## 📁 **Estructura del Proyecto**
+## 📁 Estructura del Proyecto
 
 ```
+dialecticia/
 ├── src/
-│   ├── app/              # App Router de Next.js 15
-│   │   ├── admin/        # Panel de administración
-│   │   ├── api/          # API Routes
-│   │   ├── debate/       # Páginas de debate
-│   │   └── philosophers/ # Gestión de filósofos
-│   ├── components/       # Componentes React reutilizables
-│   ├── lib/              # Utilidades y servicios
-│   └── types/            # Definiciones de TypeScript
-├── prisma/               # Esquema y migraciones de base de datos
-├── docs/                 # Documentación del proyecto
-└── scripts/              # Scripts de utilidad
+│   ├── app/                    # Next.js App Router
+│   │   ├── admin/             # Panel de administración
+│   │   ├── api/               # API Routes
+│   │   ├── debate/            # Páginas de debate
+│   │   └── login/             # Autenticación
+│   ├── components/            # Componentes React
+│   │   ├── admin/             # Componentes admin
+│   │   ├── debate/            # Componentes de debate
+│   │   ├── philosopher/       # Componentes de filósofos
+│   │   └── ui/                # Componentes base
+│   ├── lib/                   # Utilidades y servicios
+│   ├── hooks/                 # React Hooks personalizados
+│   ├── store/                 # Estado global
+│   └── types/                 # Tipos TypeScript
+├── prisma/                    # Esquema y migraciones de BD
+├── public/                    # Archivos estáticos
+└── docs/                      # Documentación
 ```
 
-## 🔧 **Scripts Disponibles**
+## 🔧 Configuración de IA
 
-```bash
-# Desarrollo
-npm run dev              # Servidor de desarrollo
-./start-dev-with-logs.sh # Servidor con logs coloreados
-./watch-debug-logs.sh    # Solo logs de debugging
+### Proveedores Soportados
+- **Anthropic Claude** (Recomendado)
+- **OpenAI GPT-4**
+- **Otros proveedores** (fácil extensión)
 
-# Base de datos
-npx prisma studio        # Interfaz gráfica de BD
-npx prisma generate      # Generar cliente Prisma
-npx prisma db push       # Aplicar cambios al esquema
+### Timeline Socrático
+Configura las etapas del diálogo desde el panel admin:
+1. Ve a `/admin/llm-management`
+2. Selecciona "Timeline Socrático"
+3. Ajusta etapas, tonos e intensidades
+4. Aplica presets o crea configuraciones personalizadas
 
-# Producción
-npm run build            # Build de producción
-npm start                # Servidor de producción
-```
+## 🎯 Uso
 
-## 📚 **Documentación**
+1. **Crear cuenta** con código de invitación
+2. **Seleccionar filósofo** de la galería
+3. **Iniciar debate** con un tema filosófico
+4. **Participar** en el diálogo socrático guiado
+5. **Explorar** diferentes perspectivas y enfoques
 
-- **[Sistema de Debugging de Prompts](docs/PROMPT_DEBUGGING_SYSTEM.md)**: Guía completa del sistema de debugging
-- **[Sistema de Exportación PDF](docs/PDF_EXPORT_SYSTEM.md)**: Guía completa del sistema de exportación PDF editable
-- **[Roadmap](ROADMAP.md)**: Características planificadas y progreso
-- **[Setup OpenAI](setup-openai.md)**: Configuración de API keys
+## 🤝 Contribuir
 
-## 🔄 **Backups**
+1. Fork el repositorio
+2. Crea una rama feature (`git checkout -b feature/nueva-caracteristica`)
+3. Commit tus cambios (`git commit -am 'Agregar nueva característica'`)
+4. Push a la rama (`git push origin feature/nueva-caracteristica`)
+5. Abre un Pull Request
 
-El proyecto mantiene backups automáticos:
-- `Dialecticia-backup-20250610-MODAL_ZINDEX_FIXED.zip`: ✅ **CONTEXTO CONVERSACIONAL + MODAL Z-INDEX** - v2.2
-- `Dialecticia-backup-20250603-MODAL_ZINDEX_FIXED.zip`: Modal Z-Index corregido - Portal implementation
-- `BACKUP_20250130_PDF_EXPORT_OPTIMIZED`: Sistema de exportación PDF optimizado v2.0
-- `BACKUP_20250529_161709_PDF_EXPORT_SYSTEM`: Sistema de exportación PDF editable completo
-- `BACKUP_20250529_161120_PROMPT_DEBUGGING_SYSTEM`: Sistema de debugging completo
-- `BACKUP_20250530_LLM_CLAUDE4_WORKING`: Sistema LLM funcionando
-- `BACKUP_20250529_143327_LLM_PERSONALITY_COMPLETE`: Sistema de personalidades
+## 📄 Licencia
 
-## 🧪 **Testing del Sistema de Debugging**
+Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 
-Para probar que el debugging funciona correctamente:
+## 🙏 Reconocimientos
 
-1. **Acceder al panel admin**: `/admin/llm-management`
-2. **Desactivar un prompt**: Usar el botón de poder (⚡ → ⭕)
-3. **Intentar un debate**: Con cualquier filósofo
-4. **Verificar error**: Debe aparecer mensaje amarillo específico
-5. **Verificar logs**: Terminal debe mostrar detalles del error
+- Inspirado en la tradición filosófica socrática
+- Powered by Anthropic Claude y OpenAI
+- Diseño basado en principios de UX moderno
+- Comunidad open source
 
-**Logs esperados cuando funciona**:
-```
-🚨 PROMPT ERROR DETECTED FOR DEBUGGING:
-   🔴 Philosopher: [Nombre]
-   🔴 Error: Prompt template "[nombre_prompt]" no encontrado o está desactivado
-🔥 DEBUGGING ERROR CAUGHT IN API ROUTE: PROMPT_DEBUGGING_ERROR: Prompt '[nombre]' requerido para [filósofo] está desactivado o no existe
-```
+---
 
-## 🎯 **Estado del Proyecto**
-
-- ✅ **Sistema LLM Multi-Provider**: Anthropic Claude + OpenAI
-- ✅ **Base de Datos de Prompts**: 11+ prompts migrados
-- ✅ **Sistema de Debugging**: Control total de prompts
-- ✅ **Panel de Administración**: Gestión completa
-- ✅ **Sistema de Personalidades**: Traits únicos por filósofo
-- ✅ **Autenticación**: Sistema de roles (admin/user)
-- ✅ **Exportación PDF**: PDFs profesionales con diseño optimizado v2.0
-- ✅ **Modal de Exportación**: Z-index corregido con React Portal
-- ✅ **Contexto de Conversación**: Índice de mensajes enviado al LLM para respuestas adaptativas
-- 🔄 **En Desarrollo**: Gamificación avanzada
-- 📋 **Próximo**: Sistema de métricas detalladas
-
-## 👥 **Equipo**
-
-- **Desarrollo**: Federico + Claude Sonnet 4
-- **Versión Actual**: v2.2 - Conversational Context + Modal Z-Index Fixed
-
-## ⚠️ **Problemas Conocidos**
-
-### ✅ Problemas Recientemente Solucionados
-
-- **Modal de Exportación PDF**: ✅ **SOLUCIONADO** - Z-index y posicionamiento corregidos
-  - **Solución**: Implementación de React Portal para renderizado directo en body
-  - **Mejoras**: Z-index optimizado con contexto de apilamiento independiente
-  - **Estado**: Modal aparece correctamente por encima de todos los elementos
-
-### 🔴 Problemas Críticos Pendientes
-
-- **Cancelación de Exportación**: Posibles conflictos entre cancelación manual y errores reales
-  - Cancelación manual ocasionalmente reportada como error
-  - **Backup disponible**: `Dialecticia-backup-20250603-151152.zip`
-
-### Resolución Recomendada
-```bash
-# Limpieza profunda de cache corrupto
-pkill -f "next dev"
-rm -rf .next node_modules/.cache .turbo
-npm cache clean --force
-rm -rf node_modules && npm install
-npm run dev
-```
-
-## 📞 **Soporte**
-
-Para issues o preguntas:
-1. Revisar logs con `./start-dev-with-logs.sh`
-
-# Limpiar puerto y correr app
-lsof -ti:3001 | xargs kill -9 2>/dev/null || true && sleep 2 && npm run dev
+**Dialecticia** - *Donde la sabiduría antigua encuentra la tecnología moderna* 🏛️✨

@@ -194,13 +194,105 @@ async function getConversationSettings() {
       return getDefaultConversationSettings()
     }
 
-    const settings = JSON.parse(config.parameters)
-    console.log('✅ Configuración de conversación cargada desde BD')
-    return settings
+    const configData = JSON.parse(config.parameters)
+    
+    // COMPATIBILIDAD: Detectar si es timeline socrático nuevo o sistema viejo
+    if (configData.stages && typeof configData.stages === 'object' && !configData.conversation_stages) {
+      // Es el nuevo sistema de Timeline Socrático - convertir a formato viejo
+      console.log('✅ Configuración Timeline Socrático detectada, adaptando...')
+      return adaptSocraticTimelineToOldFormat(configData.stages)
+    } else if (configData.conversation_stages) {
+      // Es el sistema viejo
+      console.log('✅ Configuración de conversación cargada desde BD (formato viejo)')
+      return configData
+    } else {
+      // Formato desconocido, usar defaults
+      console.warn('⚠️ Formato de configuración desconocido, usando valores por defecto')
+      return getDefaultConversationSettings()
+    }
+    
   } catch (error) {
     console.error('❌ Error cargando configuración de conversación:', error)
     return getDefaultConversationSettings()
   }
+}
+
+/**
+ * ADAPTADOR DE COMPATIBILIDAD: Convierte Timeline Socrático al formato viejo
+ */
+function adaptSocraticTimelineToOldFormat(socraticStages: any): any {
+  // Mapear etapas socráticas a fases conversacionales clásicas
+  const stageMapping = {
+    bienvenida: 'initial',
+    provocacion: 'development', 
+    definicion: 'intermediate',
+    elenchos: 'advanced',
+    aporia: 'advanced',
+    busqueda: 'deep'
+  }
+
+  const adaptedStages: any = {}
+  
+  // Procesar cada etapa socrática (ahora es un objeto)
+  Object.entries(socraticStages).forEach(([stageKey, stageData]: [string, any]) => {
+    // Extraer el nombre base de la etapa (ej: "bienvenida_1_1" -> "bienvenida")
+    const stageName = stageKey.split('_')[0]
+    const mappedName = stageMapping[stageName as keyof typeof stageMapping]
+    
+    if (mappedName && !adaptedStages[mappedName]) {
+      adaptedStages[mappedName] = {
+        min: stageData.min_messages,
+        max: stageData.max_messages,
+        tone: getToneFromIntensity(stageData.intensity),
+        style: getStyleFromSocraticStage(stageName),
+        description: stageData.description || `Fase ${mappedName} adaptada del timeline socrático`
+      }
+    }
+  })
+
+  // Completar con defaults si faltan etapas
+  const defaultStages = getDefaultConversationSettings().conversation_stages
+  Object.keys(defaultStages).forEach(key => {
+    if (!adaptedStages[key]) {
+      adaptedStages[key] = (defaultStages as any)[key]
+    }
+  })
+
+  return {
+    conversation_stages: adaptedStages,
+    response_guidance: {
+      use_message_index: true,
+      adapt_tone_by_stage: true,
+      reference_previous_messages: true,
+      escalate_philosophical_method: true
+    }
+  }
+}
+
+/**
+ * Convierte intensidad socrática a tono conversacional
+ */
+function getToneFromIntensity(intensity: number): string {
+  if (intensity <= 3) return 'formal'
+  if (intensity <= 5) return 'confident'
+  if (intensity <= 7) return 'direct'
+  if (intensity <= 8) return 'challenging'
+  return 'familiar'
+}
+
+/**
+ * Convierte etapa socrática a estilo conversacional
+ */
+function getStyleFromSocraticStage(stageName: string): string {
+  const styleMap = {
+    bienvenida: 'presentation',
+    provocacion: 'building_arguments',
+    definicion: 'questioning',
+    elenchos: 'contradictions',
+    aporia: 'contradictions',
+    busqueda: 'synthesis'
+  }
+  return styleMap[stageName as keyof typeof styleMap] || 'questioning'
 }
 
 /**
@@ -362,14 +454,22 @@ export async function generatePhilosopherChatResponse(
     
     // Construir contexto de la conversación
     const recentHistory = conversationHistory.slice(-6) // Últimos 6 mensajes
-    let contextPrompt = `TEMA DEL DEBATE: "${debateTopic}"\n\n`
+    
+    // INSTRUCCIONES DE ETAPA AL INICIO - MUY PROMINENTES
+    let contextPrompt = `🚨 INSTRUCCIONES CRÍTICAS DE ETAPA - DEBES SEGUIR EXACTAMENTE:\n`
+    contextPrompt += `==================================================\n`
+    contextPrompt += `ETAPA ACTUAL: ${phaseInfo.stage.toUpperCase()}\n`
+    contextPrompt += `COMPORTAMIENTO REQUERIDO: ${phaseInfo.description}\n`
+    contextPrompt += `TONO OBLIGATORIO: ${phaseInfo.tone}\n`
+    contextPrompt += `ESTILO OBLIGATORIO: ${phaseInfo.style}\n`
+    contextPrompt += `==================================================\n\n`
+    
+    contextPrompt += `TEMA DEL DEBATE: "${debateTopic}"\n\n`
     
     // NUEVO: Incluir índice de respuesta para que el LLM adapte su estilo
     contextPrompt += `CONTEXTO DE CONVERSACIÓN:\n`
     contextPrompt += `- Esta será tu respuesta #${responseIndex} en este debate\n`
-    contextPrompt += `- Total de intercambios hasta ahora: ${totalMessages}\n`
-    contextPrompt += `- Fase de conversación: ${phaseInfo.stage} (${phaseInfo.description})\n`
-    contextPrompt += `- Tono objetivo: ${phaseInfo.tone} | Estilo: ${phaseInfo.style}\n\n`
+    contextPrompt += `- Total de intercambios hasta ahora: ${totalMessages}\n\n`
     
     if (recentHistory.length > 0) {
       contextPrompt += `HISTORIAL RECIENTE:\n`
@@ -380,7 +480,22 @@ export async function generatePhilosopherChatResponse(
     contextPrompt += `ÚLTIMO MENSAJE DEL USUARIO:\n"${userLastMessage}"\n\n`
     contextPrompt += `INSTRUCCIONES ESPECÍFICAS:\n`
     contextPrompt += `${guidance}\n\n`
-    contextPrompt += `Responde usando tu personalidad filosófica única y el estilo definido en el sistema.`
+    contextPrompt += `🎯 RECORDATORIO FINAL - CUMPLE EXACTAMENTE:\n`
+    contextPrompt += `- ETAPA: ${phaseInfo.stage} = ${phaseInfo.description}\n`
+    contextPrompt += `- TONO: ${phaseInfo.tone} | ESTILO: ${phaseInfo.style}\n`
+    contextPrompt += `- Si es etapa "initial", DEBES dar bienvenida e invitar al debate\n`
+    contextPrompt += `- Si es etapa "development", DEBES formular preguntas fundamentales\n\n`
+    contextPrompt += `Responde usando tu personalidad filosófica única COMBINADA con el comportamiento específico de la etapa.`
+    
+    console.log(`📤 CONTEXT PROMPT CONSTRUIDO:`)
+    console.log(`==================================================`)
+    console.log(contextPrompt)
+    console.log(`==================================================`)
+    
+    console.log(`🎯 PROMPT COMPLETO QUE SE ENVÍA AL LLM:`)
+    console.log(`SYSTEM: ${systemPrompt.substring(0, 200)}...`)
+    console.log(`USER: ${contextPrompt.substring(0, 200)}...`)
+    console.log(`==================================================`)
     
     // Llamar al LLM usando el servicio centralizado
     const llmResponse = await LLMService.callLLM({
