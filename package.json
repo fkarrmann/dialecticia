@@ -8,7 +8,7 @@
     "build:simple": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npx prisma generate --accelerate",
+    "postinstall": "npx prisma generate",
     "db:setup": "prisma db push && prisma db seed",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed-essential": "tsx prisma/seed-essential.ts",
