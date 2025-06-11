@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { getCurrentSession } from '@/lib/auth'
+import { PrismaClient } from '@prisma/client'
 
 const createPhilosopherSchema = z.object({
   // Identidad básica
@@ -54,6 +55,8 @@ const createPhilosopherSchema = z.object({
   isActive: z.boolean().default(true),
 })
 
+const prismaClient = new PrismaClient()
+
 export async function GET(request: NextRequest) {
   try {
     // Verificar autenticación
@@ -65,15 +68,39 @@ export async function GET(request: NextRequest) {
       }, { status: 401 })
     }
 
-    // Obtener todos los filósofos activos con información del laboratorio
-    const philosophers = await prisma.philosopher.findMany({
-      where: { isActive: true },
-      include: {
-        personalityAspects: true,
+    const philosophers = await prismaClient.philosopher.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { isPublic: true },
+          { isDefault: true }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        philosophicalSchool: true,
+        personalityTraits: true,
+        coreBeliefs: true,
+        argumentStyle: true,
+        questioningApproach: true,
+        isActive: true,
+        isDefault: true,
+        isPublic: true,
+        photoUrl: true,
+        publicDescription: true,
+        inspirationSource: true,
+        debateMechanics: true,
+        tags: true,
+        rating: true,
+        totalRatings: true,
+        usageCount: true
       },
       orderBy: [
-        { usageCount: 'desc' }, // Por popularidad
-        { name: 'asc' }         // Alfabético
+        { isDefault: 'desc' },
+        { rating: 'desc' },
+        { name: 'asc' }
       ]
     })
 
