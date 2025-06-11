@@ -1,10 +1,9 @@
-// Schema updated: 2025-01-19 - PostgreSQL ONLY
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -160,8 +159,8 @@ model Vote {
   voterId     String
   value       Int
   createdAt   DateTime     @default(now())
-  philosopher Philosopher? @relation(fields: [voterId], references: [id], map: "votes_philosopher_fkey")
-  user        User?        @relation(fields: [voterId], references: [id], map: "votes_user_fkey")
+  philosopher Philosopher? @relation(fields: [voterId], references: [id])
+  user        User?        @relation(fields: [voterId], references: [id])
   message     Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, voterId, voterType])
