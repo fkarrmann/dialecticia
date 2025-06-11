@@ -14,19 +14,35 @@ export async function POST(request: NextRequest) {
 
     console.log('🔧 Arreglando acceso de administrador...');
     
-    // 1. Actualizar usuario Federico para que sea admin
-    const adminUser = await prisma.user.updateMany({
+    // 1. Buscar y actualizar usuario Federico para que sea admin
+    const existingUser = await prisma.user.findFirst({
       where: { 
         OR: [
           { email: 'fkarrmann@gmail.com' },
           { name: 'Federico Karrmann' }
         ]
-      },
-      data: { 
-        isAdmin: true,
-        email: 'fkarrmann@gmail.com' // Asegurar que tenga email
       }
     });
+
+    let adminUser;
+    if (existingUser) {
+      adminUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { 
+          isAdmin: true,
+          email: existingUser.email || 'fkarrmann@gmail.com'
+        }
+      });
+    } else {
+      // Crear nuevo usuario admin si no existe
+      adminUser = await prisma.user.create({
+        data: {
+          name: 'Federico Karrmann',
+          email: 'fkarrmann@gmail.com',
+          isAdmin: true
+        }
+      });
+    }
 
     // 2. Crear nuevo código de invitación para admin
     const newAdminCode = await prisma.invitationCode.create({
@@ -113,7 +129,7 @@ export async function POST(request: NextRequest) {
       success: true, 
       message: 'Acceso de administrador corregido',
       results: {
-        userUpdated: adminUser.count,
+        userUpdated: adminUser ? 1 : 0,
         newAdminCode: newAdminCode.code,
         philosophersCreated,
         totalPhilosophers,
