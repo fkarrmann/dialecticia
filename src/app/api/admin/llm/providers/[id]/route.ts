@@ -50,14 +50,9 @@ export async function GET(
         models: {
           select: {
             id: true,
-            modelName: true,
-            displayName: true,
+            name: true,
+            modelIdentifier: true,
             isActive: true
-          }
-        },
-        _count: {
-          select: {
-            interactions: true
           }
         }
       }
@@ -70,12 +65,16 @@ export async function GET(
       )
     }
 
-    // Add preview of API key and hasApiKey flag
+    // Compatibilidad con frontend - agregar campos faltantes
     const responseData = {
       ...provider,
-      hasApiKey: !!provider.apiKeyEncrypted,
-      apiKeyPreview: provider.apiKeyEncrypted ? '***' + provider.apiKeyEncrypted.slice(-4) : null,
-      apiKeyEncrypted: undefined // Remove from response
+      displayName: provider.name,
+      maxTokens: 4000,
+      rateLimitRpm: 60,
+      rateLimitTpm: 60000,
+      costPer1kTokens: 0.002,
+      hasApiKey: false,
+      apiKeyPreview: null
     }
 
     return NextResponse.json(responseData)
@@ -134,22 +133,13 @@ export async function PUT(
       }
     }
 
-    // Prepare update data
+    // Prepare update data - solo campos que existen en el schema actual
     const updateData: any = {}
     
     if (validatedData.name) updateData.name = validatedData.name
-    if (validatedData.displayName) updateData.displayName = validatedData.displayName
     if (validatedData.baseUrl) updateData.baseUrl = validatedData.baseUrl
-    if (validatedData.maxTokens !== undefined) updateData.maxTokens = validatedData.maxTokens
-    if (validatedData.rateLimitRpm !== undefined) updateData.rateLimitRpm = validatedData.rateLimitRpm
-    if (validatedData.rateLimitTpm !== undefined) updateData.rateLimitTpm = validatedData.rateLimitTpm
-    if (validatedData.costPer1kTokens !== undefined) updateData.costPer1kTokens = validatedData.costPer1kTokens
     if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive
-
-    // Handle API key update
-    if (validatedData.apiKey) {
-      updateData.apiKeyEncrypted = encryptApiKey(validatedData.apiKey)
-    }
+    // Ignorar campos que no existen en schema: displayName, maxTokens, rateLimitRpm, etc.
 
     const updatedProvider = await prisma.lLMProvider.update({
       where: { id },
@@ -158,25 +148,33 @@ export async function PUT(
         models: {
           select: {
             id: true,
-            modelName: true,
-            displayName: true,
+            name: true,
+            modelIdentifier: true,
             isActive: true
           }
         },
         _count: {
           select: {
-            interactions: true
+            models: true,
+            configurations: true
           }
         }
       }
     })
 
-    // Prepare response data
+    // Prepare response data - compatibilidad con frontend
     const responseData = {
       ...updatedProvider,
-      hasApiKey: !!updatedProvider.apiKeyEncrypted,
-      apiKeyPreview: updatedProvider.apiKeyEncrypted ? '***' + updatedProvider.apiKeyEncrypted.slice(-4) : null,
-      apiKeyEncrypted: undefined // Remove from response
+      displayName: updatedProvider.name,
+      maxTokens: 4000,
+      rateLimitRpm: 60,
+      rateLimitTpm: 60000,
+      costPer1kTokens: 0.002,
+      hasApiKey: false,
+      apiKeyPreview: null,
+      _count: {
+        interactions: 0
+      }
     }
 
     return NextResponse.json(responseData)

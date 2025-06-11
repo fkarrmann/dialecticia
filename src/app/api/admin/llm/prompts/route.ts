@@ -39,18 +39,6 @@ export async function GET(request: NextRequest) {
         ...(category && { category }),
         ...(activeOnly && { isActive: true })
       },
-      include: {
-        model: {
-          include: {
-            provider: true
-          }
-        },
-        _count: {
-          select: {
-            interactions: true
-          }
-        }
-      },
       orderBy: [
         { name: 'asc' },
         { createdAt: 'desc' }
@@ -71,66 +59,11 @@ export async function GET(request: NextRequest) {
 // POST: Create new prompt template
 export async function POST(request: NextRequest) {
   try {
-    const session = await getCurrentSession()
-    
-    if (!session?.user?.isAdmin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
-    }
-
-    const body = await request.json()
-    const validatedData = CreatePromptSchema.parse(body)
-
-    // Check if we're creating a new version or a new prompt
-    const existingPrompts = await prisma.promptTemplate.findMany({
-      where: { name: validatedData.name },
-      orderBy: { version: 'desc' },
-      take: 1
-    })
-
-    let version = '1.0.0'
-    if (existingPrompts.length > 0) {
-      // Create new version (increment minor version)
-      const lastVersion = existingPrompts[0].version
-      const [major, minor, patch] = lastVersion.split('.').map(Number)
-      version = `${major}.${minor + 1}.${patch}`
-      
-      // Deactivate previous versions
-      await prisma.promptTemplate.updateMany({
-        where: { name: validatedData.name },
-        data: { isActive: false }
-      })
-    }
-
-    const prompt = await prisma.promptTemplate.create({
-      data: {
-        name: validatedData.name,
-        category: validatedData.category,
-        displayName: validatedData.displayName,
-        version,
-        systemPrompt: validatedData.systemPrompt,
-        userPrompt: validatedData.userPrompt,
-        description: validatedData.description,
-        usage: validatedData.usage,
-        parameters: validatedData.parameters ? JSON.stringify(validatedData.parameters) : null,
-        testData: validatedData.testData ? JSON.stringify(validatedData.testData) : null,
-        createdBy: session.user.id,
-        isActive: true,
-      }
-    })
-
-    return NextResponse.json(prompt, { status: 201 })
-
+    return NextResponse.json(
+      { error: 'Endpoint temporarily disabled - schema mismatch' },
+      { status: 501 }
+    )
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      )
-    }
-
     console.error('Error creating prompt:', error)
     return NextResponse.json(
       { error: 'Failed to create prompt' },

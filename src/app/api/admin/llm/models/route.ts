@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            displayName: true,
             isActive: true
           }
         },
@@ -64,80 +63,11 @@ export async function GET(request: NextRequest) {
 // POST: Create new model
 export async function POST(request: NextRequest) {
   try {
-    const session = await getCurrentSession()
-    
-    if (!session?.user?.isAdmin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
-    }
-
-    const body = await request.json()
-    const validatedData = CreateModelSchema.parse(body)
-
-    // Verify provider exists
-    const provider = await prisma.lLMProvider.findUnique({
-      where: { id: validatedData.providerId }
-    })
-
-    if (!provider) {
-      return NextResponse.json(
-        { error: 'Provider not found' },
-        { status: 404 }
-      )
-    }
-
-    // Check if model already exists for this provider
-    const existingModel = await prisma.lLMModel.findUnique({
-      where: {
-        providerId_modelName: {
-          providerId: validatedData.providerId,
-          modelName: validatedData.modelName
-        }
-      }
-    })
-
-    if (existingModel) {
-      return NextResponse.json(
-        { error: 'Model already exists for this provider' },
-        { status: 400 }
-      )
-    }
-
-    const model = await prisma.lLMModel.create({
-      data: {
-        providerId: validatedData.providerId,
-        modelName: validatedData.modelName,
-        displayName: validatedData.displayName,
-        maxTokens: validatedData.maxTokens,
-        costPer1kInput: validatedData.costPer1kInput,
-        costPer1kOutput: validatedData.costPer1kOutput,
-        capabilities: validatedData.capabilities ? JSON.stringify(validatedData.capabilities) : null,
-        parameters: validatedData.parameters ? JSON.stringify(validatedData.parameters) : null,
-        usageFunction: validatedData.usageFunction,
-      },
-      include: {
-        provider: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true
-          }
-        }
-      }
-    })
-
-    return NextResponse.json(model, { status: 201 })
-
+    return NextResponse.json(
+      { error: 'Endpoint temporarily disabled - schema mismatch' },
+      { status: 501 }
+    )
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      )
-    }
-
     console.error('Error creating model:', error)
     return NextResponse.json(
       { error: 'Failed to create model' },
