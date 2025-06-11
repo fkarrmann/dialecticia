@@ -17,7 +17,9 @@
     "restart": "node scripts/restart.js",
     "transform-prompts": "node scripts/transform-prompts.js",
     "migrate:to-postgres": "node scripts/migrate-to-postgres.js",
-    "setup:production": "node scripts/setup-postgres-production.js"
+    "setup:production": "node scripts/setup-postgres-production.js",
+    "migrate:complete": "node scripts/migrate-complete-data.js",
+    "export:sqlite": "node scripts/export-sqlite-data.js"
   },
   "dependencies": {
     "@prisma/client": "^6.8.2",

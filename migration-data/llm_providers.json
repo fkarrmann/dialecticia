@@ -1,0 +1,32 @@
+[
+  {
+    "id": "cmb9i6dil0003s7r6gkbgfknv",
+    "name": "openai",
+    "displayName": "OpenAI GPT",
+    "baseUrl": "https://api.openai.com/v1",
+    "apiKeyEncrypted": null,
+    "isActive": 1,
+    "maxTokens": 8000,
+    "rateLimitRpm": 3000,
+    "rateLimitTpm": 250000,
+    "costPer1kTokens": 0.002,
+    "metadata": null,
+    "createdAt": 1748530941934,
+    "updatedAt": 1748530941934
+  },
+  {
+    "id": "cmb9i6dip0004s7r62ly8ygys",
+    "name": "anthropic",
+    "displayName": "Anthropic Claude",
+    "baseUrl": "https://api.anthropic.com/v1",
+    "apiKeyEncrypted": "617e828b6195c8317395021e07a76a46f529e7c8206733a8fea72145d12b2eeb3c4fa166cce97471ab1ff2371cc7beae0fb73b1fd61c18f9c9d3492510cabe3591bd74c01dfca92f7b7816beba5929a72d2402234be134379fe74d301f0a915fe82b783cf10c62e3f54d06c05a2979ed",
+    "isActive": 1,
+    "maxTokens": 200000,
+    "rateLimitRpm": 50,
+    "rateLimitTpm": 40000,
+    "costPer1kTokens": 0.003,
+    "metadata": null,
+    "createdAt": 1748530941938,
+    "updatedAt": 1748534024179
+  }
+]

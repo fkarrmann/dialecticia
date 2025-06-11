@@ -1,0 +1,90 @@
+[
+  {
+    "id": "cmb739t7r0000s77zv639bw18",
+    "code": "DIALECTICIA-TEST",
+    "description": "Código de prueba para desarrollo",
+    "isActive": 1,
+    "maxUses": 10,
+    "currentUses": 10,
+    "createdAt": 1748384975656,
+    "expiresAt": null,
+    "createdBy": null
+  },
+  {
+    "id": "cmb739t7v0001s77zqjj1xo2m",
+    "code": "FILOSOFO-BETA",
+    "description": "Código para beta testers",
+    "isActive": 1,
+    "maxUses": 5,
+    "currentUses": 1,
+    "createdAt": 1748384975660,
+    "expiresAt": null,
+    "createdBy": null
+  },
+  {
+    "id": "cmb739t7x0002s77zk2wrjhbe",
+    "code": "SOCRATES-VIP",
+    "description": "Código VIP para acceso premium",
+    "isActive": 1,
+    "maxUses": 30,
+    "currentUses": 6,
+    "createdAt": 1748384975662,
+    "expiresAt": null,
+    "createdBy": null
+  },
+  {
+    "id": "cmb739t7z0003s77zecy2b1n9",
+    "code": "DEMO-ACCESS",
+    "description": "Código para demostraciones",
+    "isActive": 1,
+    "maxUses": 1,
+    "currentUses": 0,
+    "createdAt": 1748384975663,
+    "expiresAt": null,
+    "createdBy": null
+  },
+  {
+    "id": "cmb74ev7a000hs741afspm2uk",
+    "code": "NUEVO-TEST",
+    "description": "Código de prueba creado por API",
+    "isActive": 1,
+    "maxUses": 5,
+    "currentUses": 1,
+    "createdAt": 1748386891126,
+    "expiresAt": null,
+    "createdBy": "cmb73p4br0000s7lv8pu18kln"
+  },
+  {
+    "id": "cmb9i6di40000s7r66uz11kux",
+    "code": "ADMIN-FEDE-2025",
+    "description": "Código de acceso principal para Fede",
+    "isActive": 1,
+    "maxUses": 10,
+    "currentUses": 1,
+    "createdAt": 1748530941916,
+    "expiresAt": null,
+    "createdBy": null
+  },
+  {
+    "id": "cmb9i6did0001s7r6d6l3qd0f",
+    "code": "DEV-ACCESS-123",
+    "description": "Código para desarrolladores",
+    "isActive": 1,
+    "maxUses": 5,
+    "currentUses": 0,
+    "createdAt": 1748530941925,
+    "expiresAt": null,
+    "createdBy": null
+  },
+  {
+    "id": "cmb9i6dig0002s7r6em9h0dow",
+    "code": "DEMO-GUEST-456",
+    "description": "Código para demos y invitados",
+    "isActive": 1,
+    "maxUses": 20,
+    "currentUses": 0,
+    "createdAt": 1748530941928,
+    "expiresAt": null,
+    "createdBy": null
+  }
+]

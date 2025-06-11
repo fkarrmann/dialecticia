@@ -1,0 +1,58 @@
+[
+  {
+    "id": "cmb73p4br0000s7lv8pu18kln",
+    "email": "fede@test.com",
+    "name": "Federico Test",
+    "isAdmin": 0,
+    "createdAt": 1748385689895,
+    "updatedAt": 1748385689895
+  },
+  {
+    "id": "cmb73sik50003s7lvtjwmzug8",
+    "email": "fkarrmann@gmail.com",
+    "name": "Federico Karrmann",
+    "isAdmin": 1,
+    "createdAt": 1748385848310,
+    "updatedAt": 1748474250568
+  },
+  {
+    "id": "cmb74bt2x000cs741u4wc1fyd",
+    "email": "ana@test.com",
+    "name": "Ana Test",
+    "isAdmin": 0,
+    "createdAt": 1748386748409,
+    "updatedAt": 1748386748409
+  },
+  {
+    "id": "cmb74febc000is741vgcptn0g",
+    "email": null,
+    "name": "Test User",
+    "isAdmin": 1,
+    "createdAt": 1748386915897,
+    "updatedAt": 1748474231276
+  },
+  {
+    "id": "cmb8ntppq0056s77p8ynb2veg",
+    "email": "federico@dialecticia.com",
+    "name": "Federico Karrmann",
+    "isAdmin": 0,
+    "createdAt": 1748479962734,
+    "updatedAt": 1748479962734
+  },
+  {
+    "id": "cmb8o0pid005bs77pj7p79x8t",
+    "email": "test@test.com",
+    "name": "Federico Test",
+    "isAdmin": 0,
+    "createdAt": 1748480289061,
+    "updatedAt": 1748480289061
+  },
+  {
+    "id": "cmb8o2ul7005es77pc6yxdnb6",
+    "email": "fkarrmann@gmal.com",
+    "name": "Federico Karrmann",
+    "isAdmin": 0,
+    "createdAt": 1748480388956,
+    "updatedAt": 1748480388956
+  }
+]
