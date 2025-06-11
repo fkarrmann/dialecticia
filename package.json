@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3001",
-    "build": "rm -rf .next && rm -rf node_modules/.prisma && rm -rf node_modules/@prisma && npx prisma generate --no-engine && npx prisma db push && next build --no-lint",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npx prisma generate --no-engine",
+    "postinstall": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "npx prisma db push --force-reset && npm run db:seed",
     "db:seed-philosophers": "node scripts/seed-philosophers.js",
@@ -43,4 +43,4 @@
     "tsx": "^4.19.4",
     "typescript": "^5"
   }
-}
+} 

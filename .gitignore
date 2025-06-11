@@ -50,4 +50,4 @@ next-env.d.ts
 
 # Cache directories
 /.turbo/
-/.cache/
+/.cache/ 

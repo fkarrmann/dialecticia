@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateInvitationCode, createUserSession, setSessionCookie } from '@/lib/auth'
+import { ensureDatabaseSetup } from '@/lib/database-setup'
 
 export async function POST(request: NextRequest) {
   try {
+    // Ensure database is set up before proceeding
+    await ensureDatabaseSetup()
+    
     const { name, invitationCode, email } = await request.json()
 
     // Validar datos requeridos
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('Error validating invitation code:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
