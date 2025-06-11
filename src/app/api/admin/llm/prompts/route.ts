@@ -39,13 +39,35 @@ export async function GET(request: NextRequest) {
         ...(category && { category }),
         ...(activeOnly && { isActive: true })
       },
+      include: {
+        _count: {
+          select: {
+            interactions: true
+          }
+        }
+      },
       orderBy: [
         { name: 'asc' },
         { createdAt: 'desc' }
       ]
     })
 
-    return NextResponse.json(prompts)
+    // Agregar campos dummy para compatibilidad frontend
+    const safePrompts = prompts.map(prompt => ({
+      ...prompt,
+      // Campos que espera el frontend pero no están en schema actual
+      displayName: prompt.name, // Usar name como displayName
+      systemPrompt: prompt.template, // Usar template como systemPrompt
+      userPrompt: '', // Campo dummy
+      usage: prompt.description || '', // Usar description como usage
+      parameters: null, // Campo dummy
+      testData: null, // Campo dummy
+      version: '1.0.0', // Versión dummy
+      modelId: null, // Campo dummy
+      model: null // Campo dummy
+    }))
+
+    return NextResponse.json(safePrompts)
 
   } catch (error) {
     console.error('Error fetching prompts:', error)

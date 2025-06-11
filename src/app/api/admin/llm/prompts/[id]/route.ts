@@ -34,7 +34,14 @@ export async function GET(
     }
 
     const prompt = await prisma.promptTemplate.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            interactions: true
+          }
+        }
+      }
     })
 
     if (!prompt) {
@@ -44,7 +51,21 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(prompt)
+    // Agregar campos dummy para compatibilidad frontend
+    const safePrompt = {
+      ...prompt,
+      displayName: prompt.name,
+      systemPrompt: prompt.template,
+      userPrompt: '',
+      usage: prompt.description || '',
+      parameters: null,
+      testData: null,
+      version: '1.0.0',
+      modelId: null,
+      model: null
+    }
+
+    return NextResponse.json(safePrompt)
   } catch (error) {
     console.error('Error fetching prompt:', error)
     return NextResponse.json(

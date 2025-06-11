@@ -49,7 +49,24 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json(models)
+    // Agregar campos dummy para compatibilidad frontend
+    const safeModels = models.map(model => ({
+      ...model,
+      // Campos que espera el frontend
+      displayName: model.name, // Usar name como displayName
+      modelName: model.modelIdentifier, // Usar modelIdentifier como modelName
+      costPer1kInput: model.costPer1kTokens || 0.002, // Valor dummy
+      costPer1kOutput: model.costPer1kTokens || 0.002, // Valor dummy
+      capabilities: null, // Campo dummy
+      parameters: null, // Campo dummy
+      usageFunction: null, // Campo dummy
+      provider: {
+        ...model.provider,
+        displayName: model.provider.name // Agregar displayName al provider
+      }
+    }))
+
+    return NextResponse.json(safeModels)
 
   } catch (error) {
     console.error('Error fetching models:', error)
