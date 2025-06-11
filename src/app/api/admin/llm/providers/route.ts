@@ -59,6 +59,11 @@ export async function GET(request: NextRequest) {
             isActive: true,
             costPer1kTokens: true,
           }
+        },
+        _count: {
+          select: {
+            interactions: true
+          }
         }
       },
       orderBy: { createdAt: 'desc' }
