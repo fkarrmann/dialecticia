@@ -32,14 +32,7 @@ function decryptApiKey(encryptedKey: string): string {
 
 const CreateProviderSchema = z.object({
   name: z.string().min(1).max(50),
-  displayName: z.string().min(1).max(100),
-  baseUrl: z.string().url(),
-  apiKey: z.string().optional(),
-  maxTokens: z.number().int().min(1).max(1000000).default(4000),
-  rateLimitRpm: z.number().int().min(1).max(10000).default(60),
-  rateLimitTpm: z.number().int().min(1).max(1000000).default(60000),
-  costPer1kTokens: z.number().min(0).max(1000).default(0.002),
-  metadata: z.record(z.any()).optional(),
+  baseUrl: z.string().url().optional(),
 })
 
 const UpdateProviderSchema = CreateProviderSchema.partial()
@@ -61,30 +54,20 @@ export async function GET(request: NextRequest) {
         models: {
           select: {
             id: true,
-            modelName: true,
-            displayName: true,
+            name: true,
+            modelIdentifier: true,
             isActive: true,
-            costPer1kInput: true,
-            costPer1kOutput: true,
-          }
-        },
-        _count: {
-          select: {
-            interactions: true
+            costPer1kTokens: true,
           }
         }
       },
       orderBy: { createdAt: 'desc' }
     })
 
-    // Hide encrypted API keys, only show last 4 characters
+    // Providers simplificados sin API keys (que no existen en schema)
     const safeProviders = providers.map(provider => ({
       ...provider,
-      apiKeyEncrypted: undefined,
-      apiKeyPreview: provider.apiKeyEncrypted 
-        ? `****${provider.apiKeyEncrypted.slice(-4)}` 
-        : null,
-      hasApiKey: !!provider.apiKeyEncrypted
+      modelsCount: provider.models.length
     }))
 
     return NextResponse.json(safeProviders)
@@ -125,34 +108,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Encrypt API key if provided
-    const apiKeyEncrypted = validatedData.apiKey 
-      ? encryptApiKey(validatedData.apiKey)
-      : null
-
     const provider = await prisma.lLMProvider.create({
       data: {
         name: validatedData.name,
-        displayName: validatedData.displayName,
         baseUrl: validatedData.baseUrl,
-        apiKeyEncrypted,
-        maxTokens: validatedData.maxTokens,
-        rateLimitRpm: validatedData.rateLimitRpm,
-        rateLimitTpm: validatedData.rateLimitTpm,
-        costPer1kTokens: validatedData.costPer1kTokens,
-        metadata: validatedData.metadata ? JSON.stringify(validatedData.metadata) : null,
       }
     })
 
-    // Return safe version without API key
-    const safeProvider = {
-      ...provider,
-      apiKeyEncrypted: undefined,
-      apiKeyPreview: apiKeyEncrypted ? `****${apiKeyEncrypted.slice(-4)}` : null,
-      hasApiKey: !!apiKeyEncrypted
-    }
-
-    return NextResponse.json(safeProvider, { status: 201 })
+    return NextResponse.json(provider, { status: 201 })
 
   } catch (error) {
     if (error instanceof z.ZodError) {
