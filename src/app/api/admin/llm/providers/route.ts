@@ -62,17 +62,19 @@ export async function GET(request: NextRequest) {
         },
         _count: {
           select: {
-            interactions: true
+            models: true,
+            configurations: true
           }
         }
       },
       orderBy: { createdAt: 'desc' }
     })
 
-    // Providers simplificados sin API keys (que no existen en schema)
+    // Providers con información del schema actual
     const safeProviders = providers.map(provider => ({
       ...provider,
-      modelsCount: provider.models.length
+      modelsCount: provider.models.length,
+      configurationsCount: provider._count.configurations
     }))
 
     return NextResponse.json(safeProviders)
