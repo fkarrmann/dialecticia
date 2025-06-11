@@ -70,11 +70,23 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
-    // Providers con información del schema actual
+    // Providers con información del schema actual + compatibilidad frontend
     const safeProviders = providers.map(provider => ({
       ...provider,
+      // Campos requeridos por el frontend que no están en el schema actual
+      displayName: provider.name, // Usar name como displayName temporal
+      maxTokens: 4000, // Valor predeterminado
+      rateLimitRpm: 60, // Valor predeterminado
+      rateLimitTpm: 60000, // Valor predeterminado  
+      costPer1kTokens: 0.002, // Valor predeterminado
+      hasApiKey: false, // No hay campo apiKey en schema actual
+      apiKeyPreview: null, // No hay campo apiKey en schema actual
       modelsCount: provider.models.length,
-      configurationsCount: provider._count.configurations
+      configurationsCount: provider._count.configurations,
+      // Cambiar _count para que tenga lo que espera el frontend
+      _count: {
+        interactions: 0 // Campo que espera el frontend pero no tenemos relación directa
+      }
     }))
 
     return NextResponse.json(safeProviders)
