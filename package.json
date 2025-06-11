@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3001",
-    "build": "prisma generate && prisma db push --force-reset && tsx prisma/seed-essential.ts && next build",
+    "build": "node scripts/build-with-db.js",
+    "build:simple": "next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
