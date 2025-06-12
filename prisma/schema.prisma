@@ -19,7 +19,7 @@ model User {
   favoritePhilosophers PhilosopherFavorite[]
   philosophers         Philosopher[]
   sessions             Session[]
-  votes                Vote[]
+  votes                Vote[]              @relation("VoteUser")
 
   @@map("users")
 }
@@ -97,7 +97,7 @@ model Philosopher {
   favoritedBy         PhilosopherFavorite[]
   personalityAspects  PhilosopherPersonalityAspect[]
   creator             User?                          @relation(fields: [createdBy], references: [id])
-  votes               Vote[]
+  votes               Vote[]              @relation("VotePhilosopher")
 
   @@map("philosophers")
 }
@@ -159,8 +159,8 @@ model Vote {
   voterId     String
   value       Int
   createdAt   DateTime     @default(now())
-  philosopher Philosopher? @relation(fields: [voterId], references: [id])
-  user        User?        @relation(fields: [voterId], references: [id])
+  philosopher Philosopher? @relation("VotePhilosopher", fields: [voterId], references: [id])
+  user        User?        @relation("VoteUser", fields: [voterId], references: [id])
   message     Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, voterId, voterType])
