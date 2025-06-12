@@ -51,84 +51,122 @@ export class LLMService {
     try {
       console.log(`🤖 LLMService: Función "${request.functionName}" iniciada`)
       
-      // 1. Encontrar el prompt template
+      // 1. Encontrar configuración LLM activa para el prompt template
+      let configuration = null
       let promptTemplate = null
+      
       try {
+        // Primero buscar el prompt template
         promptTemplate = await prisma.promptTemplate.findFirst({
           where: { 
             name: request.functionName,
             isActive: true 
-          },
-          include: {
-            model: {
-              include: {
-                provider: true
-              }
-            }
           }
         })
         
         if (!promptTemplate) {
-          console.log(`⚠️ No se encontró prompt template para "${request.functionName}", usando configuración por defecto`)
-          // Para debugging: fallar inmediatamente cuando no se encuentra el prompt
+          console.log(`⚠️ No se encontró prompt template para "${request.functionName}"`)
           throw new Error(`Prompt template "${request.functionName}" no encontrado o está desactivado`)
         }
+        
+        // Buscar configuración específica para este prompt template
+        configuration = await prisma.lLMConfiguration.findFirst({
+          where: { 
+            promptTemplateId: promptTemplate.id,
+            isActive: true 
+          },
+          include: {
+            provider: true,
+            model: true,
+            promptTemplate: true
+          }
+        })
+        
+        // Si no hay configuración específica, buscar configuración por defecto
+        if (!configuration) {
+          console.log(`🔍 No hay configuración específica para "${request.functionName}", buscando configuración por defecto...`)
+          
+          configuration = await prisma.lLMConfiguration.findFirst({
+            where: { 
+              promptTemplateId: null, // Configuración por defecto
+              isActive: true 
+            },
+            include: {
+              provider: true,
+              model: true,
+              promptTemplate: true
+            }
+          })
+        }
+        
+        if (!configuration) {
+          console.log(`⚠️ No se encontró configuración LLM activa, buscando cualquier configuración disponible...`)
+          
+          // Último fallback: cualquier configuración activa
+          configuration = await prisma.lLMConfiguration.findFirst({
+            where: { 
+              isActive: true 
+            },
+            include: {
+              provider: true,
+              model: true,
+              promptTemplate: true
+            }
+          })
+        }
+        
+        if (!configuration) {
+          throw new Error(`No se encontró ninguna configuración LLM activa`)
+        }
+        
       } catch (error) {
-        console.log(`⚠️ Error buscando prompt template: ${error}`)
-        // Para debugging: re-lanzar el error para que falle inmediatamente
+        console.log(`⚠️ Error buscando configuración LLM: ${error}`)
         throw error
       }
       
-      // 2. Seleccionar modelo: primero el específico del prompt, luego fallback
-      let model
-      if (promptTemplate?.model) {
-        console.log(`🎯 Usando modelo específico del prompt: ${promptTemplate.model.displayName}`)
-        model = promptTemplate.model
-      } else {
-        console.log(`🔍 No hay modelo específico, buscando modelo disponible...`)
-        model = await this.selectBestModel(request.functionName, request.preferredProvider)
-      }
+      console.log(`🎯 Usando configuración: ${configuration.name}`)
+      console.log(`📡 Provider: ${configuration.provider.name} - Model: ${configuration.model.name}`)
       
-      if (!model) {
-        throw new Error(`No se encontró modelo disponible para la función "${request.functionName}"`)
-      }
+      // 2. Obtener la API key del provider
+      // Nota: Por ahora asumimos que la API key está en variables de entorno
+      // ya que el esquema no tiene campo apiKey en LLMProvider
+      let apiKey = ''
       
-      // 3. Preparar la llamada
-      const provider = model.provider
-      const apiKey = decryptApiKey(provider.apiKeyEncrypted || '')
+      if (configuration.provider.name === 'openai') {
+        apiKey = process.env.OPENAI_API_KEY || ''
+      } else if (configuration.provider.name === 'anthropic') {
+        apiKey = process.env.ANTHROPIC_API_KEY || ''
+      }
       
       if (!apiKey) {
-        throw new Error(`API key no disponible para el proveedor ${provider.name}`)
+        throw new Error(`API key no disponible para el proveedor ${configuration.provider.name}. Verificar variables de entorno.`)
       }
       
-      console.log(`📡 Usando ${provider.displayName} - ${model.displayName}`)
-      
-      // 4. Llamar al proveedor específico
+      // 3. Llamar al proveedor específico
       let response: any
       let usage: any
       
-      if (provider.name === 'openai') {
-        const result = await this.callOpenAI(provider, model, apiKey, request)
+      if (configuration.provider.name === 'openai') {
+        const result = await this.callOpenAI(configuration.provider, configuration.model, apiKey, request, configuration)
         response = result.response
         usage = result.usage
-      } else if (provider.name === 'anthropic') {
-        const result = await this.callAnthropic(provider, model, apiKey, request)
+      } else if (configuration.provider.name === 'anthropic') {
+        const result = await this.callAnthropic(configuration.provider, configuration.model, apiKey, request, configuration)
         response = result.response
         usage = result.usage
       } else {
-        throw new Error(`Proveedor no soportado: ${provider.name}`)
+        throw new Error(`Proveedor no soportado: ${configuration.provider.name}`)
       }
       
       const endTime = Date.now()
       const latencyMs = endTime - startTime
       
-      // 5. Calcular costo
-      const cost = this.calculateCost(model, usage.inputTokens, usage.outputTokens)
+      // 4. Calcular costo
+      const cost = this.calculateCost(configuration.model, usage.inputTokens, usage.outputTokens)
       
-      // 6. Registrar la interacción
+      // 5. Registrar la interacción
       await this.logInteraction({
-        providerId: provider.id,
-        modelId: model.id,
+        modelId: configuration.model.id,
         promptTemplateId: promptTemplate?.id || null,
         functionName: request.functionName,
         inputTokens: usage.inputTokens,
@@ -146,8 +184,8 @@ export class LLMService {
       return {
         content: response,
         usage,
-        provider: provider.displayName,
-        model: model.displayName,
+        provider: configuration.provider.name,
+        model: configuration.model.name,
         cost,
         latencyMs
       }
@@ -158,10 +196,9 @@ export class LLMService {
       
       console.error(`❌ LLMService: Error en función "${request.functionName}":`, error)
       
-      // Registrar error (solo si tenemos al menos el functionName)
+      // Registrar error
       try {
         await this.logInteraction({
-          providerId: null, // Se manejará en logInteraction
           modelId: null,
           promptTemplateId: null,
           functionName: request.functionName,
@@ -182,76 +219,22 @@ export class LLMService {
   }
   
   /**
-   * Selecciona el mejor modelo para una función específica
-   */
-  private static async selectBestModel(functionName: string, preferredProvider?: string) {
-    try {
-      const whereClause: any = {
-        isActive: true,
-        provider: { isActive: true }
-      }
-      
-      // Si hay función específica, buscar modelos que la soporten
-      if (functionName) {
-        whereClause.usageFunction = functionName
-      }
-      
-      // Si hay proveedor preferido
-      if (preferredProvider) {
-        whereClause.provider = {
-          ...whereClause.provider,
-          name: preferredProvider
-        }
-      }
-      
-      const models = await prisma.lLMModel.findMany({
-        where: whereClause,
-        include: { provider: true },
-        orderBy: [
-          { costPer1kInput: 'asc' }, // Preferir modelos más baratos
-          { createdAt: 'desc' }
-        ]
-      })
-      
-      if (models.length === 0) {
-        // Fallback: buscar cualquier modelo activo
-        const fallbackModels = await prisma.lLMModel.findMany({
-          where: {
-            isActive: true,
-            provider: { isActive: true }
-          },
-          include: { provider: true },
-          orderBy: { costPer1kInput: 'asc' }
-        })
-        
-        if (fallbackModels.length > 0) {
-          console.log(`⚠️ Usando modelo fallback: ${fallbackModels[0].displayName}`)
-          return fallbackModels[0]
-        }
-      }
-      
-      return models[0] || null
-    } catch (error) {
-      console.error('Error selecting model:', error)
-      return null
-    }
-  }
-  
-  /**
    * Llama a OpenAI
    */
-  private static async callOpenAI(provider: any, model: any, apiKey: string, request: LLMRequest) {
-    const response = await fetch(provider.baseUrl + '/chat/completions', {
+  private static async callOpenAI(provider: any, model: any, apiKey: string, request: LLMRequest, config: any) {
+    const baseUrl = provider.baseUrl || 'https://api.openai.com/v1'
+    
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: model.modelName,
+        model: model.modelIdentifier,
         messages: request.messages,
-        temperature: request.temperature || 0.7,
-        max_tokens: request.maxTokens || model.maxTokens || 4000
+        temperature: request.temperature || config.temperature || 0.7,
+        max_tokens: request.maxTokens || config.maxTokens || model.maxTokens || 4000
       })
     })
 
@@ -275,7 +258,9 @@ export class LLMService {
   /**
    * Llama a Anthropic (Claude)
    */
-  private static async callAnthropic(provider: any, model: any, apiKey: string, request: LLMRequest) {
+  private static async callAnthropic(provider: any, model: any, apiKey: string, request: LLMRequest, config: any) {
+    const baseUrl = provider.baseUrl || 'https://api.anthropic.com/v1'
+    
     // Convertir formato de mensajes de OpenAI a Anthropic
     const systemMessage = request.messages.find(m => m.role === 'system')
     const userMessages = request.messages.filter(m => m.role !== 'system')
@@ -285,7 +270,7 @@ export class LLMService {
       content: msg.content
     }))
     
-    const response = await fetch(provider.baseUrl + '/messages', {
+    const response = await fetch(`${baseUrl}/messages`, {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
@@ -293,9 +278,9 @@ export class LLMService {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: model.modelName,
-        max_tokens: request.maxTokens || model.maxTokens || 4000,
-        temperature: request.temperature || 0.7,
+        model: model.modelIdentifier,
+        max_tokens: request.maxTokens || config.maxTokens || model.maxTokens || 4000,
+        temperature: request.temperature || config.temperature || 0.7,
         system: systemMessage?.content || '',
         messages: anthropicMessages
       })
@@ -322,8 +307,8 @@ export class LLMService {
    * Calcula el costo de una llamada
    */
   private static calculateCost(model: any, inputTokens: number, outputTokens: number): number {
-    const inputCost = (inputTokens / 1000) * (model.inputCostPer1k || 0)
-    const outputCost = (outputTokens / 1000) * (model.outputCostPer1k || model.inputCostPer1k || 0)
+    const inputCost = (inputTokens / 1000) * (model.costPer1kTokens || 0)
+    const outputCost = (outputTokens / 1000) * (model.costPer1kTokens || 0) // Simplificado por ahora
     return inputCost + outputCost
   }
   
@@ -331,7 +316,6 @@ export class LLMService {
    * Registra la interacción en la base de datos
    */
   private static async logInteraction(data: {
-    providerId: string | null
     modelId: string | null
     promptTemplateId: string | null
     functionName: string
@@ -344,29 +328,28 @@ export class LLMService {
     errorMessage: string | null
   }) {
     try {
-      // Si no hay providerId (error case), no podemos registrar la interacción
-      if (!data.providerId) {
-        console.log('⚠️ No se puede registrar interacción sin providerId')
+      // Solo registrar si tenemos un modelId válido
+      if (!data.modelId) {
+        console.log('⚠️ No se puede registrar interacción sin modelId')
         return
       }
       
       await prisma.lLMInteraction.create({
         data: {
-          providerId: data.providerId,
-          modelId: data.modelId || undefined,
-          promptTemplateId: data.promptTemplateId || undefined,
-          functionName: data.functionName,
+          modelId: data.modelId,
+          promptTemplateId: data.promptTemplateId,
           inputTokens: data.inputTokens,
           outputTokens: data.outputTokens,
-          totalTokens: data.totalTokens,
-          latencyMs: data.latencyMs,
-          cost: data.cost,
+          totalCost: data.cost,
+          responseTime: data.latencyMs,
           success: data.success,
-          errorMessage: data.errorMessage || undefined
+          errorMessage: data.errorMessage
         }
       })
+      
+      console.log(`📊 Interacción registrada: ${data.functionName}`)
     } catch (error) {
-      console.error('Error logging LLM interaction:', error)
+      console.error('Error logging interaction:', error)
     }
   }
 } 

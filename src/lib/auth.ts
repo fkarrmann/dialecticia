@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/db'
 import { cookies } from 'next/headers'
 import { NextRequest } from 'next/server'
 import { generateSessionToken, SESSION_COOKIE_NAME, SESSION_DURATION } from './auth-utils'
-
-const prisma = new PrismaClient()
 
 // Tipos
 export interface AuthUser {
