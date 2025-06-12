@@ -131,8 +131,8 @@ export class LLMService {
       let apiKey = ''
       
       // Primero intentar obtener de la base de datos (encriptada)
-      if (configuration.provider.apiKeyEncrypted) {
-        apiKey = decryptApiKey(configuration.provider.apiKeyEncrypted)
+      if ((configuration.provider as any).apiKeyEncrypted) {
+        apiKey = decryptApiKey((configuration.provider as any).apiKeyEncrypted)
         console.log(`🔑 Usando API key de la base de datos para ${configuration.provider.name}`)
       } else {
         // Fallback a variables de entorno
@@ -181,7 +181,10 @@ export class LLMService {
         latencyMs,
         cost,
         success: true,
-        errorMessage: null
+        errorMessage: null,
+        systemPrompt: request.messages.find(m => m.role === 'system')?.content,
+        userPrompt: request.messages.find(m => m.role === 'user')?.content,
+        response: response
       })
       
       console.log(`✅ LLMService: Función "${request.functionName}" completada en ${latencyMs}ms`)
@@ -332,6 +335,9 @@ export class LLMService {
     cost: number
     success: boolean
     errorMessage: string | null
+    systemPrompt?: string
+    userPrompt?: string
+    response?: string
   }) {
     try {
       // Solo registrar si tenemos un modelId válido
@@ -352,6 +358,30 @@ export class LLMService {
           errorMessage: data.errorMessage
         }
       })
+      
+      // Store prompts separately for monitoring (temporary solution)
+      if (data.systemPrompt || data.userPrompt || data.response) {
+        console.log(`📋 PROMPT MONITORING - ${data.functionName}:`)
+        console.log(`🔹 System: ${data.systemPrompt?.substring(0, 100)}...`)
+        console.log(`🔹 User: ${data.userPrompt?.substring(0, 100)}...`)
+        console.log(`🔹 Response: ${data.response?.substring(0, 100)}...`)
+        
+        // Send to live monitoring endpoint (fire and forget)
+        try {
+          fetch('/api/admin/llm/live-prompts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              functionName: data.functionName,
+              systemPrompt: data.systemPrompt,
+              userPrompt: data.userPrompt,
+              response: data.response
+            })
+          }).catch(err => console.log('Failed to log to monitoring:', err))
+        } catch (error) {
+          // Ignore monitoring errors
+        }
+      }
       
       console.log(`📊 Interacción registrada: ${data.functionName}`)
     } catch (error) {

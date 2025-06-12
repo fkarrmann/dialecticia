@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Database, Bot, FileText, BarChart3, Settings, Clock } from 'lucide-react'
+import { Database, Bot, FileText, BarChart3, Settings, Clock, Monitor } from 'lucide-react'
 import LLMProvidersManager from './LLMProvidersManager'
 import LLMModelsManager from './LLMModelsManager'
 import LLMPromptsManager from './LLMPromptsManager'
@@ -9,7 +9,7 @@ import LLMMetricsDashboard from './LLMMetricsDashboard'
 import LLMConfigurationsManager from './LLMConfigurationsManager'
 import { SocraticTimelineEditor } from './SocraticTimelineEditor'
 
-type TabType = 'providers' | 'models' | 'prompts' | 'configurations' | 'timeline' | 'metrics'
+type TabType = 'providers' | 'models' | 'prompts' | 'configurations' | 'timeline' | 'metrics' | 'monitoring'
 
 const tabs = [
   {
@@ -47,6 +47,12 @@ const tabs = [
     label: 'Métricas',
     icon: BarChart3,
     description: 'Analytics y dashboard'
+  },
+  {
+    id: 'monitoring' as TabType,
+    label: 'Monitoreo Live',
+    icon: Monitor,
+    description: 'Visualización en tiempo real de prompts y respuestas'
   }
 ]
 
@@ -67,6 +73,22 @@ export default function LLMManagementDashboard() {
         return <SocraticTimelineEditor />
       case 'metrics':
         return <LLMMetricsDashboard />
+      case 'monitoring':
+        return (
+          <div className="text-center py-8">
+            <Monitor className="w-16 h-16 mx-auto text-purple-400 mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">Monitoreo en Tiempo Real</h3>
+            <p className="text-slate-400 mb-6">
+              Visualiza los prompts exactos enviados al LLM y sus respuestas
+            </p>
+            <a
+              href="/admin/llm-monitoring"
+              className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            >
+              Abrir Monitoreo Live
+            </a>
+          </div>
+        )
       default:
         return <LLMProvidersManager />
     }
