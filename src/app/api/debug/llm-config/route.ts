@@ -147,32 +147,54 @@ export async function GET(request: NextRequest) {
 // POST method to fix configuration - switch to Anthropic
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔧 POST Debug - Switching to Anthropic configuration...')
+    console.log('🔧 POST Debug - Creating/Switching to Anthropic configuration...')
     
     // Find Anthropic provider
     const anthropicProvider = await prisma.lLMProvider.findFirst({
       where: { name: 'anthropic' },
-      include: { models: true }
+      include: { 
+        models: {
+          where: { isActive: true }
+        },
+        configurations: true
+      }
     })
     
     if (!anthropicProvider) {
       throw new Error('Anthropic provider not found')
     }
     
-    // Find Anthropic model
-    const anthropicModel = anthropicProvider.models.find(m => m.isActive) || anthropicProvider.models[0]
-    
-    if (!anthropicModel) {
-      throw new Error('No Anthropic model found')
+    if (anthropicProvider.models.length === 0) {
+      // Try to find any Anthropic model, even if inactive
+      const allModels = await prisma.lLMModel.findMany({
+        where: { providerId: anthropicProvider.id }
+      })
+      
+      if (allModels.length === 0) {
+        throw new Error('No Anthropic models found at all')
+      }
+      
+      // Activate the first model we find
+      const modelToActivate = allModels[0]
+      await prisma.lLMModel.update({
+        where: { id: modelToActivate.id },
+        data: { isActive: true }
+      })
+      
+      anthropicProvider.models = [modelToActivate]
     }
     
-    // Update existing configuration to use Anthropic
+    const anthropicModel = anthropicProvider.models[0]
+    console.log('Found/activated model:', anthropicModel.name, anthropicModel.modelIdentifier)
+    
+    // Check for existing configuration
     const existingConfig = await prisma.lLMConfiguration.findFirst({
       where: { isActive: true }
     })
     
     let updatedConfig
     if (existingConfig) {
+      console.log('Updating existing configuration...')
       updatedConfig = await prisma.lLMConfiguration.update({
         where: { id: existingConfig.id },
         data: {
@@ -186,6 +208,7 @@ export async function POST(request: NextRequest) {
         }
       })
     } else {
+      console.log('Creating new configuration...')
       updatedConfig = await prisma.lLMConfiguration.create({
         data: {
           name: 'Anthropic Claude Configuration',
