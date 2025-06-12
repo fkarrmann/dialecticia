@@ -1,87 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getCurrentSession } from '@/lib/auth'
 
-export async function POST(request: NextRequest) {
+// PUT: Fix model identifier
+export async function PUT(request: NextRequest) {
   try {
-    console.log('🔧 Fixing model identifier...')
+    const session = await getCurrentSession()
     
-    // Buscar el modelo de Claude 3.5 Sonnet que está causando problemas
-    const brokenModel = await prisma.lLMModel.findFirst({
-      where: {
-        name: 'Claude 3.5 Sonnet (Latest)',
-        modelIdentifier: 'claude-3-5-sonnet-20241022'
-      }
-    })
-    
-    if (brokenModel) {
-      console.log(`🔍 Found broken model: ${brokenModel.id}`)
-      
-      // Actualizar a Claude 3.5 Haiku que es más estable
-      const updatedModel = await prisma.lLMModel.update({
-        where: { id: brokenModel.id },
-        data: {
-          name: 'Claude 3.5 Haiku',
-          modelIdentifier: 'claude-3-5-haiku-20241022'
-        }
-      })
-      
-      console.log(`✅ Updated model to: ${updatedModel.modelIdentifier}`)
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Model identifier fixed successfully',
-        details: {
-          oldIdentifier: 'claude-3-5-sonnet-20241022',
-          newIdentifier: updatedModel.modelIdentifier,
-          modelName: updatedModel.name
-        }
-      })
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      )
     }
-    
-    // Si no encontramos el modelo problemático, buscar cualquier modelo de Anthropic
-    const anthropicModels = await prisma.lLMModel.findMany({
-      include: { provider: true },
+
+    console.log('🔧 Fixing model identifier...')
+
+    // Find the problematic model
+    const problematicModel = await prisma.lLMModel.findFirst({
       where: {
-        provider: {
-          name: 'anthropic'
+        modelIdentifier: 'claude-3-5-sonnet-20241022'
+      },
+      include: {
+        provider: true,
+        _count: {
+          select: {
+            configurations: true,
+            interactions: true
+          }
         }
       }
     })
-    
-    console.log(`📊 Found ${anthropicModels.length} Anthropic models`)
-    
-    // Actualizar todos los modelos de Anthropic a identificadores válidos
-    const updates = []
-    for (const model of anthropicModels) {
-      if (model.modelIdentifier === 'claude-3-5-sonnet-20241022') {
-        const updated = await prisma.lLMModel.update({
-          where: { id: model.id },
-          data: {
-            modelIdentifier: 'claude-3-5-haiku-20241022',
-            name: 'Claude 3.5 Haiku'
+
+    if (!problematicModel) {
+      return NextResponse.json({
+        success: false,
+        message: 'Problematic model not found',
+        currentModels: await prisma.lLMModel.findMany({
+          select: {
+            id: true,
+            name: true,
+            modelIdentifier: true,
+            provider: { select: { name: true } }
           }
         })
-        updates.push(updated)
-      }
+      })
     }
-    
+
+    console.log('Found problematic model:', {
+      id: problematicModel.id,
+      name: problematicModel.name,
+      modelIdentifier: problematicModel.modelIdentifier,
+      provider: problematicModel.provider.name,
+      configurations: problematicModel._count.configurations,
+      interactions: problematicModel._count.interactions
+    })
+
+    // Update the model identifier to a working one
+    const updatedModel = await prisma.lLMModel.update({
+      where: { id: problematicModel.id },
+      data: {
+        modelIdentifier: 'claude-3-5-haiku-20241022',
+        name: 'Claude 3.5 Haiku'
+      },
+      include: {
+        provider: true,
+        _count: {
+          select: {
+            configurations: true,
+            interactions: true
+          }
+        }
+      }
+    })
+
+    console.log('✅ Model updated successfully:', {
+      id: updatedModel.id,
+      name: updatedModel.name,
+      modelIdentifier: updatedModel.modelIdentifier,
+      provider: updatedModel.provider.name
+    })
+
     return NextResponse.json({
       success: true,
-      message: `Fixed ${updates.length} model identifiers`,
-      updates: updates.map(u => ({
-        id: u.id,
-        name: u.name,
-        modelIdentifier: u.modelIdentifier
-      }))
+      message: 'Model identifier updated successfully',
+      before: {
+        modelIdentifier: problematicModel.modelIdentifier,
+        name: problematicModel.name
+      },
+      after: {
+        modelIdentifier: updatedModel.modelIdentifier,
+        name: updatedModel.name
+      },
+      model: updatedModel
     })
-    
+
   } catch (error) {
-    console.error('🔧 Fix model error:', error)
-    
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Error desconocido',
-      stack: error instanceof Error ? error.stack : undefined
-    })
+    console.error('Error fixing model:', error)
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Failed to fix model',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
   }
 }
