@@ -142,4 +142,86 @@ export async function GET(request: NextRequest) {
       stack: error instanceof Error ? error.stack : undefined
     }, { status: 500 })
   }
+}
+
+// POST method to fix configuration - switch to Anthropic
+export async function POST(request: NextRequest) {
+  try {
+    console.log('🔧 POST Debug - Switching to Anthropic configuration...')
+    
+    // Find Anthropic provider
+    const anthropicProvider = await prisma.lLMProvider.findFirst({
+      where: { name: 'anthropic' },
+      include: { models: true }
+    })
+    
+    if (!anthropicProvider) {
+      throw new Error('Anthropic provider not found')
+    }
+    
+    // Find Anthropic model
+    const anthropicModel = anthropicProvider.models.find(m => m.isActive) || anthropicProvider.models[0]
+    
+    if (!anthropicModel) {
+      throw new Error('No Anthropic model found')
+    }
+    
+    // Update existing configuration to use Anthropic
+    const existingConfig = await prisma.lLMConfiguration.findFirst({
+      where: { isActive: true }
+    })
+    
+    let updatedConfig
+    if (existingConfig) {
+      updatedConfig = await prisma.lLMConfiguration.update({
+        where: { id: existingConfig.id },
+        data: {
+          name: 'Anthropic Claude Configuration',
+          providerId: anthropicProvider.id,
+          modelId: anthropicModel.id
+        },
+        include: {
+          provider: true,
+          model: true
+        }
+      })
+    } else {
+      updatedConfig = await prisma.lLMConfiguration.create({
+        data: {
+          name: 'Anthropic Claude Configuration',
+          providerId: anthropicProvider.id,
+          modelId: anthropicModel.id,
+          promptTemplateId: null,
+          maxTokens: 1000,
+          temperature: 0.7,
+          isActive: true
+        },
+        include: {
+          provider: true,
+          model: true
+        }
+      })
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Switched to Anthropic successfully',
+      configuration: {
+        id: updatedConfig.id,
+        name: updatedConfig.name,
+        provider: updatedConfig.provider.name,
+        model: updatedConfig.model.name,
+        hasApiKey: !!updatedConfig.provider.apiKeyEncrypted,
+        apiKeyPreview: updatedConfig.provider.apiKeyEncrypted ? 
+          `${updatedConfig.provider.apiKeyEncrypted.substring(0, 20)}...` : null
+      }
+    })
+    
+  } catch (error) {
+    console.error('❌ POST Debug error:', error)
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
 } 
