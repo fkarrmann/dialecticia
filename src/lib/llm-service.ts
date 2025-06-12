@@ -128,18 +128,24 @@ export class LLMService {
       console.log(`📡 Provider: ${configuration.provider.name} - Model: ${configuration.model.name}`)
       
       // 2. Obtener la API key del provider
-      // Nota: Por ahora asumimos que la API key está en variables de entorno
-      // ya que el esquema no tiene campo apiKey en LLMProvider
       let apiKey = ''
       
-      if (configuration.provider.name === 'openai') {
-        apiKey = process.env.OPENAI_API_KEY || ''
-      } else if (configuration.provider.name === 'anthropic') {
-        apiKey = process.env.ANTHROPIC_API_KEY || ''
+      // Primero intentar obtener de la base de datos (encriptada)
+      if (configuration.provider.apiKeyEncrypted) {
+        apiKey = decryptApiKey(configuration.provider.apiKeyEncrypted)
+        console.log(`🔑 Usando API key de la base de datos para ${configuration.provider.name}`)
+      } else {
+        // Fallback a variables de entorno
+        console.log(`🔑 No hay API key en BD, intentando variables de entorno para ${configuration.provider.name}`)
+        if (configuration.provider.name === 'openai') {
+          apiKey = process.env.OPENAI_API_KEY || ''
+        } else if (configuration.provider.name === 'anthropic') {
+          apiKey = process.env.ANTHROPIC_API_KEY || ''
+        }
       }
       
       if (!apiKey) {
-        throw new Error(`API key no disponible para el proveedor ${configuration.provider.name}. Verificar variables de entorno.`)
+        throw new Error(`API key no disponible para el proveedor ${configuration.provider.name}. Verificar configuración en base de datos o variables de entorno.`)
       }
       
       // 3. Llamar al proveedor específico

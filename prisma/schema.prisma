@@ -199,8 +199,15 @@ model PhilosopherPersonalityAspect {
 model LLMProvider {
   id              String           @id @default(cuid())
   name            String           @unique
+  displayName     String?
   baseUrl         String?
+  apiKeyEncrypted String?
   isActive        Boolean          @default(true)
+  maxTokens       Int?             @default(4000)
+  rateLimitRpm    Int?             @default(60)
+  rateLimitTpm    Int?             @default(60000)
+  costPer1kTokens Float?           @default(0.002)
+  metadata        String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   models          LLMModel[]
@@ -214,9 +221,15 @@ model LLMModel {
   name             String
   providerId       String
   modelIdentifier  String
+  displayName      String?
   isActive         Boolean          @default(true)
   maxTokens        Int?
+  costPer1kInput   Float?
+  costPer1kOutput  Float?
   costPer1kTokens  Float?
+  capabilities     String?
+  parameters       String?
+  usageFunction    String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   provider         LLMProvider      @relation(fields: [providerId], references: [id], onDelete: Cascade)
