@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { createCipheriv, randomBytes } from 'crypto';
+import { createCipher } from 'crypto';
 
 const prisma = new PrismaClient();
 
-// Función de encriptación actualizada
+// Función de encriptación compatible con el sistema existente
 function encryptApiKey(apiKey: string): string {
+  if (!apiKey) return '';
   const encryptionKey = process.env.LLM_ENCRYPTION_KEY || 'your-dev-encryption-key-32-chars!!';
-  const algorithm = 'aes-256-cbc';
-  const iv = randomBytes(16);
-  
-  // Asegurar que la key sea de 32 bytes
-  const key = Buffer.from(encryptionKey.padEnd(32, '0').slice(0, 32));
-  
-  const cipher = createCipheriv(algorithm, key, iv);
+  const cipher = createCipher('aes-256-cbc', encryptionKey);
   let encrypted = cipher.update(apiKey, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  
-  // Retornar IV + encrypted data
-  return iv.toString('hex') + ':' + encrypted;
+  return encrypted;
 }
 
 export async function POST(request: NextRequest) {
