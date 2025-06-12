@@ -19,13 +19,6 @@ export async function POST(request: NextRequest) {
       where: { 
         name: functionName,
         isActive: true 
-      },
-      include: {
-        model: {
-          include: {
-            provider: true
-          }
-        }
       }
     })
 
@@ -38,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Construir el prompt reemplazando variables
-    let finalPrompt = promptTemplate.systemPrompt
+    let finalPrompt = promptTemplate.template
 
     // Reemplazar variables comunes
     if (data.debateMechanics) {
