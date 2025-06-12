@@ -159,11 +159,10 @@ export default function LLMModelsManager() {
         
         if (error.configurations && error.configurations.length > 0) {
           const configNames = error.configurations.map((c: any) => `• ${c.name} (${c.isActive ? 'Activa' : 'Inactiva'})`).join('\n')
-          const message = `${error.details}\n\nConfiguraciones que usan este modelo:\n${configNames}\n\n¿Quieres ir a la pestaña de Configuraciones para eliminarlas?`
+          const message = `${error.details}\n\nConfiguraciones que usan este modelo:\n${configNames}\n\n¿Quieres eliminar automáticamente el modelo Y todas sus configuraciones?`
           
           if (confirm(message)) {
-            // Aquí podrías cambiar a la pestaña de configuraciones si tienes acceso al estado del tab
-            alert('Ve a la pestaña "Configuraciones" para eliminar o reasignar estas configuraciones primero.')
+            await forceDeleteModel(modelId, modelName)
           }
         } else {
           alert(`Error: ${error.error}\n\n${error.details || ''}`)
@@ -200,6 +199,31 @@ export default function LLMModelsManager() {
     } catch (error) {
       console.error('Error updating model status:', error)
       alert('Error al actualizar el estado del modelo')
+    }
+  }
+
+  const forceDeleteModel = async (modelId: string, modelName: string) => {
+    try {
+      const response = await fetch(`/api/admin/llm/models/${modelId}/force-delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setModels(prev => prev.filter(m => m.id !== modelId))
+        
+        const configsDeleted = result.deletedConfigurations.length
+        const configsList = result.deletedConfigurations.map((c: any) => `• ${c.name}`).join('\n')
+        
+        alert(`✅ Eliminación exitosa:\n\n• Modelo: ${modelName}\n• Configuraciones eliminadas: ${configsDeleted}\n\n${configsList}`)
+      } else {
+        const error = await response.json()
+        alert(`Error: ${error.error}\n\n${error.details || ''}`)
+      }
+    } catch (error) {
+      console.error('Error force deleting model:', error)
+      alert('Error al eliminar el modelo forzadamente')
     }
   }
 
