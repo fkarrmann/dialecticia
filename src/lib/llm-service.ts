@@ -189,6 +189,8 @@ export class LLMService {
       
       console.log(`✅ LLMService: Función "${request.functionName}" completada en ${latencyMs}ms`)
       console.log(`💰 Costo: $${cost.toFixed(6)} | Tokens: ${usage.totalTokens} (${usage.inputTokens}+${usage.outputTokens})`)
+      console.log(`📤 RESPUESTA FINAL DEL LLM: "${response.substring(0, 200)}..."`)
+      console.log(`🎯 PROVIDER/MODEL USADO: ${configuration.provider.name}/${configuration.model.name}`)
       
       return {
         content: response,
@@ -368,7 +370,9 @@ export class LLMService {
         
         // Send to live monitoring endpoint (fire and forget)
         try {
-          fetch('/api/admin/llm/live-prompts', {
+          // Use full URL for server-side fetch
+          const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dialecticia.vercel.app'
+          fetch(`${baseUrl}/api/admin/llm/live-prompts`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

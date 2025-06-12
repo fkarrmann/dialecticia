@@ -87,6 +87,7 @@ export async function generatePhilosopherResponse(
     }
 
     console.log(`✅ Database LLM response received | Provider: ${llmResponse.provider} | Model: ${llmResponse.model} | Tokens: ${response.usage?.totalTokens} | Cost: $${llmResponse.cost.toFixed(6)}`)
+    console.log(`📝 CONTENIDO DE RESPUESTA: "${response.content.substring(0, 200)}..."`)
     return response
 
   } catch (error) {
@@ -338,7 +339,7 @@ export async function executePrompt(
     }
     
     // Reemplazar variables en el prompt
-    let finalPrompt = promptTemplate.systemPrompt
+    let finalPrompt = promptTemplate.template
     Object.entries(variables).forEach(([key, value]) => {
       const placeholder = `{${key}}`
       finalPrompt = finalPrompt.replace(new RegExp(placeholder, 'g'), value)
