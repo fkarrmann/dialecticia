@@ -202,10 +202,10 @@ export default function LLMProvidersManager() {
         
         if (error.models && error.models.length > 0) {
           const modelNames = error.models.map((m: any) => `• ${m.name} (${m.modelIdentifier}) - ${m.isActive ? 'Activo' : 'Inactivo'}`).join('\n')
-          const message = `${error.details}\n\nModelos que pertenecen a este proveedor:\n${modelNames}\n\n¿Quieres ir a la pestaña de Modelos para eliminarlos?`
+          const message = `${error.details}\n\nModelos que pertenecen a este proveedor:\n${modelNames}\n\n¿Quieres eliminar automáticamente el proveedor Y todos sus modelos y configuraciones?`
           
           if (confirm(message)) {
-            alert('Ve a la pestaña "Modelos" para eliminar estos modelos primero.')
+            await forceDeleteProvider(providerId, providerName)
           }
         } else if (error.configurations && error.configurations.length > 0) {
           const configNames = error.configurations.map((c: any) => `• ${c.name} (${c.isActive ? 'Activa' : 'Inactiva'})`).join('\n')
@@ -229,6 +229,39 @@ export default function LLMProvidersManager() {
       ...prev,
       [providerId]: !prev[providerId]
     }))
+  }
+
+  const forceDeleteProvider = async (providerId: string, providerName: string) => {
+    try {
+      const response = await fetch(`/api/admin/llm/providers/${providerId}/force-delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setProviders(prev => prev.filter(p => p.id !== providerId))
+        
+        const modelsDeleted = result.deletedModels.length
+        const configsDeleted = result.deletedConfigurations.length
+        const modelsList = result.deletedModels.map((m: any) => `• ${m.name}`).join('\n')
+        const configsList = result.deletedConfigurations.map((c: any) => `• ${c.name}`).join('\n')
+        
+        alert(`✅ Eliminación exitosa:\n\n• Proveedor: ${providerName}\n• Modelos eliminados: ${modelsDeleted}\n• Configuraciones eliminadas: ${configsDeleted}\n\nModelos:\n${modelsList}\n\nConfiguraciones:\n${configsList}`)
+      } else {
+        const error = await response.json()
+        
+        if (error.modelsWithInteractions && error.modelsWithInteractions.length > 0) {
+          const modelNames = error.modelsWithInteractions.map((m: any) => `• ${m.name} (${m.interactions} interacciones)`).join('\n')
+          alert(`❌ No se puede eliminar automáticamente:\n\n${error.details}\n\nModelos con interacciones:\n${modelNames}\n\nLas interacciones son datos históricos que no se pueden eliminar automáticamente.`)
+        } else {
+          alert(`Error: ${error.error}\n\n${error.details || ''}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error force deleting provider:', error)
+      alert('Error al eliminar el proveedor forzadamente')
+    }
   }
 
   if (loading) {
