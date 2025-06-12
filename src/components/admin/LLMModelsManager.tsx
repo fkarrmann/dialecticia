@@ -140,6 +140,58 @@ export default function LLMModelsManager() {
     }
   }
 
+  const deleteModel = async (modelId: string, modelName: string) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar el modelo "${modelName}"?\n\nEsta acción no se puede deshacer.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/llm/models/${modelId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        setModels(prev => prev.filter(m => m.id !== modelId))
+        alert('Modelo eliminado exitosamente')
+      } else {
+        const error = await response.json()
+        alert(`Error: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error deleting model:', error)
+      alert('Error al eliminar el modelo')
+    }
+  }
+
+  const toggleModelStatus = async (modelId: string, currentStatus: boolean) => {
+    try {
+      const response = await fetch(`/api/admin/llm/models/${modelId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isActive: !currentStatus
+        })
+      })
+
+      if (response.ok) {
+        const updatedModel = await response.json()
+        setModels(prev => prev.map(m => 
+          m.id === modelId 
+            ? { ...m, isActive: !currentStatus }
+            : m
+        ))
+        alert(`Modelo ${!currentStatus ? 'activado' : 'desactivado'} exitosamente`)
+      } else {
+        const error = await response.json()
+        alert(`Error: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error updating model status:', error)
+      alert('Error al actualizar el estado del modelo')
+    }
+  }
+
   const filteredModels = selectedProvider 
     ? models.filter(m => m.providerId === selectedProvider)
     : models
@@ -438,10 +490,18 @@ export default function LLMModelsManager() {
                   </div>
 
                   <div className="flex items-center space-x-2 ml-4">
-                    <button className="p-2 text-slate-400 hover:text-purple-400">
+                    <button 
+                      onClick={() => toggleModelStatus(model.id, model.isActive)}
+                      className="p-2 text-slate-400 hover:text-purple-400"
+                      title={model.isActive ? 'Desactivar modelo' : 'Activar modelo'}
+                    >
                       <Settings className="w-4 h-4" />
                     </button>
-                    <button className="p-2 text-slate-400 hover:text-red-400">
+                    <button 
+                      onClick={() => deleteModel(model.id, model.displayName)}
+                      className="p-2 text-slate-400 hover:text-red-400"
+                      title="Eliminar modelo"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
