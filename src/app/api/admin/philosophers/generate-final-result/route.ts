@@ -68,13 +68,6 @@ const generatePersonalityScores = async (data: any) => {
         where: { 
           name: 'final_personality_generation',
           isActive: true 
-        },
-        include: {
-          model: {
-            include: {
-              provider: true
-            }
-          }
         }
       })
     } catch (error) {
@@ -88,10 +81,10 @@ const generatePersonalityScores = async (data: any) => {
     }
     
     // Construir el prompt usando SOLO el template de la base de datos
-    let finalPrompt = promptTemplate.systemPrompt
+    let finalPrompt = promptTemplate.template
     
-    console.log('🔍 DEBUG: Prompt original de BD:', promptTemplate.systemPrompt.substring(0, 200) + '...')
-    console.log('🔍 DEBUG: Longitud prompt original:', promptTemplate.systemPrompt.length)
+    console.log('🔍 DEBUG: Prompt original de BD:', promptTemplate.template.substring(0, 200) + '...')
+    console.log('🔍 DEBUG: Longitud prompt original:', promptTemplate.template.length)
     
     // Reemplazar placeholders básicos si existen
     if (finalPrompt.includes('{TIPO_INSPIRACION}')) {
@@ -192,7 +185,7 @@ const generateArgumentStyleField = async (data: any) => {
   try {
     console.log('🎭 Generando estilo argumentativo...')
     
-    const response = await fetch('http://localhost:3001/api/admin/llm/generate-field', {
+    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3002'}/api/admin/llm/generate-field`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -224,7 +217,7 @@ const generateCoreBeliefsField = async (data: any) => {
   try {
     console.log('📚 Generando creencias fundamentales...')
     
-    const response = await fetch('http://localhost:3001/api/admin/llm/generate-field', {
+    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3002'}/api/admin/llm/generate-field`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -274,13 +267,6 @@ const generateDescription = async (data: any, personalityScores: any[]) => {
         where: { 
           name: 'personality_analysis',
           isActive: true 
-        },
-        include: {
-          model: {
-            include: {
-              provider: true
-            }
-          }
         }
       })
     } catch (error) {
@@ -294,8 +280,7 @@ const generateDescription = async (data: any, personalityScores: any[]) => {
       console.log('✅ Usando prompt personality_analysis desde BD')
       
       // Usar el prompt de la base de datos y reemplazar variables como en generatePersonalityScores
-      finalPrompt = promptTemplate.systemPrompt
-      modelToUse = promptTemplate.model
+      finalPrompt = promptTemplate.template
       
       console.log('🔍 DEBUG: Prompt personality_analysis original:', finalPrompt.substring(0, 200) + '...')
       
