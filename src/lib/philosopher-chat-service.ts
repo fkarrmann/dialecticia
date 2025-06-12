@@ -54,10 +54,8 @@ export async function buildPhilosopherChatPrompt(options: PhilosopherChatOptions
         console.log(`📋 PROMPT DETAILS:`)
         console.log(`   📌 ID: ${socraticPrompt.id}`)
         console.log(`   📌 Nombre: ${socraticPrompt.name}`)
-        console.log(`   📌 Versión: ${socraticPrompt.version}`)
-        console.log(`   📌 Modelo: ${socraticPrompt.modelId || 'Default'}`)
-        console.log(`   📌 Contenido: ${socraticPrompt.systemPrompt.substring(0, 100)}...`)
-        return socraticPrompt.systemPrompt
+        console.log(`   📌 Contenido: ${socraticPrompt.template.substring(0, 100)}...`)
+        return socraticPrompt.template
       } else {
         console.warn(`⚠️ No se encontró prompt socrático ${socraticPromptName}, usando fallback`)
         throw new Error(`Prompt socrático ${socraticPromptName} no encontrado`)
@@ -80,10 +78,8 @@ export async function buildPhilosopherChatPrompt(options: PhilosopherChatOptions
         console.log(`📋 PROMPT DETAILS:`)
         console.log(`   📌 ID: ${respondingPrompt.id}`)
         console.log(`   📌 Nombre: ${respondingPrompt.name}`)
-        console.log(`   📌 Versión: ${respondingPrompt.version}`)
-        console.log(`   📌 Modelo: ${respondingPrompt.modelId || 'Default'}`)
-        console.log(`   📌 Contenido: ${respondingPrompt.systemPrompt.substring(0, 100)}...`)
-        return respondingPrompt.systemPrompt.replace('[FILÓSOFO]', philosopher.name)
+        console.log(`   📌 Contenido: ${respondingPrompt.template.substring(0, 100)}...`)
+        return respondingPrompt.template.replace('[FILÓSOFO]', philosopher.name)
       } else {
         console.warn('⚠️ No se encontró prompt responding_to_socrates, usando fallback')
         throw new Error('Prompt responding_to_socrates no encontrado')
@@ -109,9 +105,7 @@ export async function buildPhilosopherChatPrompt(options: PhilosopherChatOptions
     console.log(`📋 PROMPT DETAILS:`)
     console.log(`   📌 ID: ${promptTemplate.id}`)
     console.log(`   📌 Nombre: ${promptTemplate.name}`)
-    console.log(`   📌 Versión: ${promptTemplate.version}`)
-    console.log(`   📌 Modelo: ${promptTemplate.modelId || 'Default'}`)
-    console.log(`   📌 Contenido original: ${promptTemplate.systemPrompt.substring(0, 100)}...`)
+    console.log(`   📌 Contenido original: ${promptTemplate.template.substring(0, 100)}...`)
     
     // Construir información de trade-offs
     let tradeOffsInfo = ''
@@ -157,7 +151,7 @@ export async function buildPhilosopherChatPrompt(options: PhilosopherChatOptions
     }
     
     // Reemplazar todas las variables en el prompt
-    let finalPrompt = promptTemplate.systemPrompt
+    let finalPrompt = promptTemplate.template
     
     Object.entries(variables).forEach(([key, value]) => {
       const placeholder = `{${key}}`
@@ -185,31 +179,9 @@ export async function buildPhilosopherChatPrompt(options: PhilosopherChatOptions
  */
 async function getConversationSettings() {
   try {
-    const config = await prisma.lLMConfiguration.findUnique({
-      where: { functionName: 'conversation_settings' }
-    })
-
-    if (!config || !config.parameters) {
-      console.warn('⚠️ No se encontró configuración conversation_settings, usando valores por defecto')
-      return getDefaultConversationSettings()
-    }
-
-    const configData = JSON.parse(config.parameters)
-    
-    // COMPATIBILIDAD: Detectar si es timeline socrático nuevo o sistema viejo
-    if (configData.stages && typeof configData.stages === 'object' && !configData.conversation_stages) {
-      // Es el nuevo sistema de Timeline Socrático - convertir a formato viejo
-      console.log('✅ Configuración Timeline Socrático detectada, adaptando...')
-      return adaptSocraticTimelineToOldFormat(configData.stages)
-    } else if (configData.conversation_stages) {
-      // Es el sistema viejo
-      console.log('✅ Configuración de conversación cargada desde BD (formato viejo)')
-      return configData
-    } else {
-      // Formato desconocido, usar defaults
-      console.warn('⚠️ Formato de configuración desconocido, usando valores por defecto')
-      return getDefaultConversationSettings()
-    }
+    // Por ahora usar configuración por defecto ya que no tenemos un modelo específico para esto
+    console.warn('⚠️ Usando configuración conversation_settings por defecto')
+    return getDefaultConversationSettings()
     
   } catch (error) {
     console.error('❌ Error cargando configuración de conversación:', error)
