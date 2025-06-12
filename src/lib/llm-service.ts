@@ -133,10 +133,22 @@ export class LLMService {
       // Primero intentar obtener de la base de datos (encriptada)
       if ((configuration.provider as any).apiKeyEncrypted) {
         apiKey = decryptApiKey((configuration.provider as any).apiKeyEncrypted)
-        console.log(`🔑 Usando API key de la base de datos para ${configuration.provider.name}`)
+        console.log(`🔑 Intentando usar API key de la base de datos para ${configuration.provider.name}`)
+        
+        // Si la desencriptación falló (cadena vacía), usar variables de entorno como fallback
+        if (!apiKey) {
+          console.log(`⚠️ Desencriptación falló, usando variables de entorno como fallback para ${configuration.provider.name}`)
+          if (configuration.provider.name === 'openai') {
+            apiKey = process.env.OPENAI_API_KEY || ''
+          } else if (configuration.provider.name === 'anthropic') {
+            apiKey = process.env.ANTHROPIC_API_KEY || ''
+          }
+        } else {
+          console.log(`✅ API key desencriptada exitosamente para ${configuration.provider.name}`)
+        }
       } else {
-        // Fallback a variables de entorno
-        console.log(`🔑 No hay API key en BD, intentando variables de entorno para ${configuration.provider.name}`)
+        // No hay API key en BD, usar variables de entorno
+        console.log(`🔑 No hay API key en BD, usando variables de entorno para ${configuration.provider.name}`)
         if (configuration.provider.name === 'openai') {
           apiKey = process.env.OPENAI_API_KEY || ''
         } else if (configuration.provider.name === 'anthropic') {
@@ -147,6 +159,8 @@ export class LLMService {
       if (!apiKey) {
         throw new Error(`API key no disponible para el proveedor ${configuration.provider.name}. Verificar configuración en base de datos o variables de entorno.`)
       }
+      
+      console.log(`🔑 API key obtenida exitosamente para ${configuration.provider.name} (${apiKey.length} caracteres)`)
       
       // 3. Llamar al proveedor específico
       let response: any
