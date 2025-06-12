@@ -196,14 +196,31 @@ export async function DELETE(
     // Check if model has interactions or configurations
     if (model._count.interactions > 0) {
       return NextResponse.json(
-        { error: 'Cannot delete model with existing interactions' },
+        { 
+          error: 'Cannot delete model with existing interactions',
+          details: `This model has ${model._count.interactions} interaction(s). Delete interactions first.`
+        },
         { status: 400 }
       )
     }
 
     if (model._count.configurations > 0) {
+      // Get the actual configurations using this model
+      const configurations = await prisma.lLMConfiguration.findMany({
+        where: { modelId: id },
+        select: {
+          id: true,
+          name: true,
+          isActive: true
+        }
+      })
+
       return NextResponse.json(
-        { error: 'Cannot delete model with existing configurations' },
+        { 
+          error: 'Cannot delete model with existing configurations',
+          details: `This model is used by ${model._count.configurations} configuration(s). Please delete or reassign these configurations first.`,
+          configurations: configurations
+        },
         { status: 400 }
       )
     }

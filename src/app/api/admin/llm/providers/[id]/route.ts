@@ -217,8 +217,8 @@ export async function DELETE(
       include: {
         _count: {
           select: {
-            interactions: true,
-            models: true
+            models: true,
+            configurations: true
           }
         }
       }
@@ -231,17 +231,46 @@ export async function DELETE(
       )
     }
 
-    // Check if provider has interactions or models
-    if (provider._count.interactions > 0) {
+    // Check if provider has models or configurations
+    if (provider._count.models > 0) {
+      // Get the actual models using this provider
+      const models = await prisma.lLMModel.findMany({
+        where: { providerId: id },
+        select: {
+          id: true,
+          name: true,
+          modelIdentifier: true,
+          isActive: true
+        }
+      })
+
       return NextResponse.json(
-        { error: 'Cannot delete provider with existing interactions' },
+        { 
+          error: 'Cannot delete provider with existing models',
+          details: `This provider has ${provider._count.models} model(s). Please delete these models first.`,
+          models: models
+        },
         { status: 400 }
       )
     }
 
-    if (provider._count.models > 0) {
+    if (provider._count.configurations > 0) {
+      // Get the actual configurations using this provider
+      const configurations = await prisma.lLMConfiguration.findMany({
+        where: { providerId: id },
+        select: {
+          id: true,
+          name: true,
+          isActive: true
+        }
+      })
+
       return NextResponse.json(
-        { error: 'Cannot delete provider with existing models' },
+        { 
+          error: 'Cannot delete provider with existing configurations',
+          details: `This provider has ${provider._count.configurations} configuration(s). Please delete or reassign these configurations first.`,
+          configurations: configurations
+        },
         { status: 400 }
       )
     }

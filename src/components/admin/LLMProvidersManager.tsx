@@ -184,7 +184,7 @@ export default function LLMProvidersManager() {
   }
 
   const deleteProvider = async (providerId: string, providerName: string) => {
-    if (!confirm(`¿Estás seguro de que quieres eliminar el proveedor "${providerName}"?\n\nEsto también eliminará todos sus modelos asociados. Esta acción no se puede deshacer.`)) {
+    if (!confirm(`¿Estás seguro de que quieres eliminar el proveedor "${providerName}"?\n\nEsta acción no se puede deshacer.`)) {
       return
     }
 
@@ -199,7 +199,24 @@ export default function LLMProvidersManager() {
         alert('Proveedor eliminado exitosamente')
       } else {
         const error = await response.json()
-        alert(`Error: ${error.error}`)
+        
+        if (error.models && error.models.length > 0) {
+          const modelNames = error.models.map((m: any) => `• ${m.name} (${m.modelIdentifier}) - ${m.isActive ? 'Activo' : 'Inactivo'}`).join('\n')
+          const message = `${error.details}\n\nModelos que pertenecen a este proveedor:\n${modelNames}\n\n¿Quieres ir a la pestaña de Modelos para eliminarlos?`
+          
+          if (confirm(message)) {
+            alert('Ve a la pestaña "Modelos" para eliminar estos modelos primero.')
+          }
+        } else if (error.configurations && error.configurations.length > 0) {
+          const configNames = error.configurations.map((c: any) => `• ${c.name} (${c.isActive ? 'Activa' : 'Inactiva'})`).join('\n')
+          const message = `${error.details}\n\nConfiguraciones que usan este proveedor:\n${configNames}\n\n¿Quieres ir a la pestaña de Configuraciones para eliminarlas?`
+          
+          if (confirm(message)) {
+            alert('Ve a la pestaña "Configuraciones" para eliminar o reasignar estas configuraciones primero.')
+          }
+        } else {
+          alert(`Error: ${error.error}\n\n${error.details || ''}`)
+        }
       }
     } catch (error) {
       console.error('Error deleting provider:', error)

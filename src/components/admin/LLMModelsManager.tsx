@@ -156,7 +156,18 @@ export default function LLMModelsManager() {
         alert('Modelo eliminado exitosamente')
       } else {
         const error = await response.json()
-        alert(`Error: ${error.error}`)
+        
+        if (error.configurations && error.configurations.length > 0) {
+          const configNames = error.configurations.map((c: any) => `• ${c.name} (${c.isActive ? 'Activa' : 'Inactiva'})`).join('\n')
+          const message = `${error.details}\n\nConfiguraciones que usan este modelo:\n${configNames}\n\n¿Quieres ir a la pestaña de Configuraciones para eliminarlas?`
+          
+          if (confirm(message)) {
+            // Aquí podrías cambiar a la pestaña de configuraciones si tienes acceso al estado del tab
+            alert('Ve a la pestaña "Configuraciones" para eliminar o reasignar estas configuraciones primero.')
+          }
+        } else {
+          alert(`Error: ${error.error}\n\n${error.details || ''}`)
+        }
       }
     } catch (error) {
       console.error('Error deleting model:', error)
