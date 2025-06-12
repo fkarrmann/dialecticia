@@ -29,13 +29,6 @@ export async function analyzePhilosopherPersonality(
         where: { 
           name: 'personality_analysis',
           isActive: true 
-        },
-        include: {
-          model: {
-            include: {
-              provider: true
-            }
-          }
         }
       })
     } catch (error) {
@@ -49,7 +42,7 @@ export async function analyzePhilosopherPersonality(
     }
     
     // Construir el prompt usando SOLO el template de la base de datos
-    let finalPrompt = promptTemplate.systemPrompt
+    let finalPrompt = promptTemplate.template
     
     // Reemplazar placeholders básicos si existen
     if (finalPrompt.includes('{NOMBRE}')) {
