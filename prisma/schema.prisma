@@ -159,8 +159,8 @@ model Vote {
   voterId     String
   value       Int
   createdAt   DateTime     @default(now())
-  philosopher Philosopher? @relation("VotePhilosopher", fields: [voterId], references: [id])
-  user        User?        @relation("VoteUser", fields: [voterId], references: [id])
+  philosopher Philosopher? @relation("VotePhilosopher", fields: [voterId], references: [id], map: "votes_philosopher_fkey")
+  user        User?        @relation("VoteUser", fields: [voterId], references: [id], map: "votes_user_fkey")
   message     Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, voterId, voterType])
