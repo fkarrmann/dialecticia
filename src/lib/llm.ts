@@ -9,17 +9,19 @@ import { prisma } from './db'
 // Configuration
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini'
-const MOCK_MODE = !OPENAI_API_KEY && process.env.NODE_ENV === 'development'
 
-// Initialize OpenAI client (only if we have an API key)
+// Nuevo sistema: Solo usar mock si está explícitamente activado
+const MOCK_MODE = process.env.LLM_MOCK_MODE === 'true'
+
+// Initialize OpenAI client (only if we have an API key) - LEGACY SYSTEM
 const openai = OPENAI_API_KEY ? new OpenAI({
   apiKey: OPENAI_API_KEY,
 }) : null
 
 if (MOCK_MODE) {
-  console.log('🚧 LLM running in mock mode (no OpenAI key)')
-} else if (!openai) {
-  console.warn('⚠️ OpenAI not configured (missing API key)')
+  console.log('🚧 LLM running in mock mode (explicitly enabled)')
+} else {
+  console.log('🚀 LLM using new database-driven system')
 }
 
 // Available models for reference
