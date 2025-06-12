@@ -1,0 +1,94 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import { createCipher } from 'crypto';
+
+const prisma = new PrismaClient();
+
+// Función de encriptación simple
+function encryptApiKey(apiKey: string): string {
+  const encryptionKey = process.env.LLM_ENCRYPTION_KEY || 'your-dev-encryption-key-32-chars!!';
+  const cipher = createCipher('aes-256-cbc', encryptionKey);
+  let encrypted = cipher.update(apiKey, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const results = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      operations: [] as string[],
+      errors: [] as string[]
+    };
+
+    // Verificar variables de entorno
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    
+    results.operations.push(`Variables: OpenAI ${openaiKey ? '✓' : '✗'}, Anthropic ${anthropicKey ? '✓' : '✗'}`);
+
+    // Actualizar Anthropic con SQL crudo
+    if (anthropicKey) {
+      try {
+        const encryptedKey = encryptApiKey(anthropicKey);
+        
+        const result = await prisma.$executeRaw`
+          UPDATE llm_providers 
+          SET "apiKeyEncrypted" = ${encryptedKey}, "isActive" = true, "updatedAt" = now()
+          WHERE name = 'anthropic'
+        `;
+        
+        results.operations.push(`Anthropic actualizado: ${result} proveedores`);
+      } catch (error: any) {
+        results.errors.push(`Error Anthropic: ${error.message}`);
+      }
+    }
+
+    // Actualizar OpenAI con SQL crudo
+    if (openaiKey) {
+      try {
+        const encryptedKey = encryptApiKey(openaiKey);
+        
+        const result = await prisma.$executeRaw`
+          UPDATE llm_providers 
+          SET "apiKeyEncrypted" = ${encryptedKey}, "isActive" = true, "updatedAt" = now()
+          WHERE name IN ('OpenAI', 'openai')
+        `;
+        
+        results.operations.push(`OpenAI actualizado: ${result} proveedores`);
+      } catch (error: any) {
+        results.errors.push(`Error OpenAI: ${error.message}`);
+      }
+    }
+
+    // Verificar resultado
+    const checkResult = await prisma.$queryRaw`
+      SELECT name, "isActive", 
+             CASE WHEN "apiKeyEncrypted" IS NOT NULL THEN 'SI' ELSE 'NO' END as has_key
+      FROM llm_providers
+    `;
+    
+    results.operations.push(`Estado proveedores:`);
+    (checkResult as any[]).forEach((p: any) => {
+      results.operations.push(`- ${p.name}: ${p.isActive ? 'ACTIVO' : 'INACTIVO'}, Key: ${p.has_key}`);
+    });
+
+    if (results.errors.length > 0) {
+      results.success = false;
+    }
+
+    return NextResponse.json(results);
+
+  } catch (error: any) {
+    return NextResponse.json({
+      success: false,
+      timestamp: new Date().toISOString(),
+      error: error.message,
+      operations: [],
+      errors: [error.message]
+    }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
+  }
+} 
