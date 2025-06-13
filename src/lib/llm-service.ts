@@ -6,10 +6,39 @@ const ENCRYPTION_KEY = process.env.LLM_ENCRYPTION_KEY || 'dev-key-32-chars-long-
 function decryptApiKey(encryptedApiKey: string): string {
   if (!encryptedApiKey) return ''
   try {
-    const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY)
-    let decrypted = decipher.update(encryptedApiKey, 'hex', 'utf8')
-    decrypted += decipher.final('utf8')
-    return decrypted
+    // Verificar si la API key ya está en texto plano (para compatibilidad)
+    if (encryptedApiKey.startsWith('sk-')) {
+      console.log('🔓 API key ya está en texto plano')
+      return encryptedApiKey
+    }
+    
+    // Intentar desencriptar usando el método deprecado para compatibilidad
+    try {
+      const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY)
+      let decrypted = decipher.update(encryptedApiKey, 'hex', 'utf8')
+      decrypted += decipher.final('utf8')
+      console.log('🔓 API key desencriptada con método legacy')
+      return decrypted
+    } catch (legacyError) {
+      console.log('⚠️ Método legacy falló, intentando método moderno...')
+      
+      // Si el método legacy falla, intentar método moderno
+      // Asumir que los primeros 32 bytes son el IV
+      const encryptedBuffer = Buffer.from(encryptedApiKey, 'hex')
+      if (encryptedBuffer.length < 32) {
+        throw new Error('Datos encriptados demasiado cortos')
+      }
+      
+      const iv = encryptedBuffer.slice(0, 16)
+      const encrypted = encryptedBuffer.slice(16)
+      const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32)
+      
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
+      let decrypted = decipher.update(encrypted, undefined, 'utf8')
+      decrypted += decipher.final('utf8')
+      console.log('🔓 API key desencriptada con método moderno')
+      return decrypted
+    }
   } catch (error) {
     console.error('Error decrypting API key:', error)
     return ''

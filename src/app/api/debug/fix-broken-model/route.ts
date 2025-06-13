@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
     const fixedModel = await prisma.lLMModel.update({
       where: { id: brokenModel.id },
       data: {
-        modelIdentifier: 'claude-3-5-haiku-20241022',
-        name: 'Claude 3.5 Haiku'
+        modelIdentifier: 'claude-sonnet-4-20250514',
+        name: 'Claude Sonnet 4'
       },
       include: {
         provider: true,
