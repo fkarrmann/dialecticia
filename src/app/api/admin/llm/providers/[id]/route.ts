@@ -73,8 +73,9 @@ export async function GET(
       rateLimitRpm: 60,
       rateLimitTpm: 60000,
       costPer1kTokens: 0.002,
-      hasApiKey: false,
-      apiKeyPreview: null
+      hasApiKey: !!(provider as any).apiKeyEncrypted,
+      apiKeyPreview: (provider as any).apiKeyEncrypted ? 
+        `${(provider as any).apiKeyEncrypted.substring(0, 20)}...` : null
     }
 
     return NextResponse.json(responseData)
@@ -139,6 +140,14 @@ export async function PUT(
     if (validatedData.name) updateData.name = validatedData.name
     if (validatedData.baseUrl) updateData.baseUrl = validatedData.baseUrl
     if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive
+    
+    // Procesar API key si se proporciona
+    if (validatedData.apiKey) {
+      console.log(`🔑 Encriptando nueva API key para ${existingProvider.name}`)
+      updateData.apiKeyEncrypted = encryptApiKey(validatedData.apiKey)
+      console.log(`✅ API key encriptada exitosamente (${updateData.apiKeyEncrypted.length} caracteres)`)
+    }
+    
     // Ignorar campos que no existen en schema: displayName, maxTokens, rateLimitRpm, etc.
 
     const updatedProvider = await prisma.lLMProvider.update({
@@ -170,8 +179,9 @@ export async function PUT(
       rateLimitRpm: 60,
       rateLimitTpm: 60000,
       costPer1kTokens: 0.002,
-      hasApiKey: false,
-      apiKeyPreview: null,
+      hasApiKey: !!(updatedProvider as any).apiKeyEncrypted,
+      apiKeyPreview: (updatedProvider as any).apiKeyEncrypted ? 
+        `${(updatedProvider as any).apiKeyEncrypted.substring(0, 20)}...` : null,
       _count: {
         interactions: 0
       }
