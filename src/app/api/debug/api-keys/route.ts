@@ -6,14 +6,28 @@ const ENCRYPTION_KEY = process.env.LLM_ENCRYPTION_KEY || 'dev-key-32-chars-long-
 
 function decryptApiKey(encryptedApiKey: string): string {
   if (!encryptedApiKey) return ''
+  
+  // Intentar método moderno primero
   try {
-    const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY)
-    let decrypted = decipher.update(encryptedApiKey, 'hex', 'utf8')
+    const iv = Buffer.from(encryptedApiKey.slice(0, 32), 'hex')
+    const encrypted = Buffer.from(encryptedApiKey.slice(32), 'hex')
+    const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32)
+    
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
+    let decrypted = decipher.update(encrypted, undefined, 'utf8')
     decrypted += decipher.final('utf8')
     return decrypted
-  } catch (error) {
-    console.error('Error decrypting API key:', error)
-    return ''
+  } catch (modernError) {
+    // Fallback al método legacy
+    try {
+      const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY)
+      let decrypted = decipher.update(encryptedApiKey, 'hex', 'utf8')
+      decrypted += decipher.final('utf8')
+      return decrypted
+    } catch (legacyError) {
+      console.error('Error decrypting API key:', legacyError)
+      return ''
+    }
   }
 }
 

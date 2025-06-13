@@ -19,24 +19,11 @@ function decryptApiKey(encryptedApiKey: string): string {
       throw new Error('Formato de API key encriptada inválido')
     }
     
-    // Intentar desencriptar usando el método deprecado para compatibilidad
+    // Intentar desencriptar usando el método moderno primero
     try {
-      const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY)
-      let decrypted = decipher.update(encryptedApiKey, 'hex', 'utf8')
-      decrypted += decipher.final('utf8')
-      console.log('🔓 API key desencriptada con método legacy')
-      return decrypted
-    } catch (legacyError) {
-      console.log('⚠️ Método legacy falló, intentando método moderno...')
-      
-      // Si el método legacy falla, intentar método moderno
-      const encryptedBuffer = Buffer.from(encryptedApiKey, 'hex')
-      if (encryptedBuffer.length < 16) {
-        throw new Error('Datos encriptados demasiado cortos para contener IV')
-      }
-      
-      const iv = encryptedBuffer.slice(0, 16)
-      const encrypted = encryptedBuffer.slice(16)
+      // Extraer IV y datos encriptados (método moderno)
+      const iv = Buffer.from(encryptedApiKey.slice(0, 32), 'hex')
+      const encrypted = Buffer.from(encryptedApiKey.slice(32), 'hex')
       const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32)
       
       const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
@@ -44,6 +31,20 @@ function decryptApiKey(encryptedApiKey: string): string {
       decrypted += decipher.final('utf8')
       console.log('🔓 API key desencriptada con método moderno')
       return decrypted
+    } catch (modernError) {
+      console.log('⚠️ Método moderno falló, intentando método legacy...')
+      
+      // Fallback al método legacy para compatibilidad
+      try {
+        const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY)
+        let decrypted = decipher.update(encryptedApiKey, 'hex', 'utf8')
+        decrypted += decipher.final('utf8')
+        console.log('🔓 API key desencriptada con método legacy')
+        return decrypted
+      } catch (legacyError) {
+        console.log('❌ Ambos métodos de desencriptación fallaron')
+        throw legacyError
+      }
     }
   } catch (error) {
     console.error('❌ Error desencriptando API key:', error)
