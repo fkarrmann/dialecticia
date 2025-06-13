@@ -6,10 +6,17 @@ const ENCRYPTION_KEY = process.env.LLM_ENCRYPTION_KEY || 'dev-key-32-chars-long-
 
 function encryptApiKey(apiKey: string): string {
   if (!apiKey) return ''
-  const cipher = crypto.createCipher('aes-256-cbc', ENCRYPTION_KEY)
+  
+  // Usar método moderno de encriptación
+  const iv = crypto.randomBytes(16)
+  const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32)
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
+  
   let encrypted = cipher.update(apiKey, 'utf8', 'hex')
   encrypted += cipher.final('hex')
-  return encrypted
+  
+  // Combinar IV + datos encriptados
+  return iv.toString('hex') + encrypted
 }
 
 export async function POST(request: NextRequest) {
@@ -63,8 +70,13 @@ export async function POST(request: NextRequest) {
     
     // Verificar que la desencriptación funciona
     try {
-      const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY)
-      let decrypted = decipher.update(encryptedKey, 'hex', 'utf8')
+      // Extraer IV y datos encriptados
+      const iv = Buffer.from(encryptedKey.slice(0, 32), 'hex')
+      const encrypted = Buffer.from(encryptedKey.slice(32), 'hex')
+      const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32)
+      
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
+      let decrypted = decipher.update(encrypted, undefined, 'utf8')
       decrypted += decipher.final('utf8')
       
       const decryptionWorks = decrypted === apiKey
