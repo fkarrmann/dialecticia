@@ -5,11 +5,18 @@ const ENCRYPTION_KEY = process.env.LLM_ENCRYPTION_KEY || 'dev-key-32-chars-long-
 
 function decryptApiKey(encryptedApiKey: string): string {
   if (!encryptedApiKey) return ''
+  
   try {
     // Verificar si la API key ya está en texto plano (para compatibilidad)
     if (encryptedApiKey.startsWith('sk-')) {
       console.log('🔓 API key ya está en texto plano')
       return encryptedApiKey
+    }
+    
+    // Verificar si es un formato válido de hex
+    if (!/^[0-9a-fA-F]+$/.test(encryptedApiKey)) {
+      console.error('❌ Formato de API key encriptada inválido (no es hex)')
+      throw new Error('Formato de API key encriptada inválido')
     }
     
     // Intentar desencriptar usando el método deprecado para compatibilidad
@@ -23,10 +30,9 @@ function decryptApiKey(encryptedApiKey: string): string {
       console.log('⚠️ Método legacy falló, intentando método moderno...')
       
       // Si el método legacy falla, intentar método moderno
-      // Asumir que los primeros 32 bytes son el IV
       const encryptedBuffer = Buffer.from(encryptedApiKey, 'hex')
-      if (encryptedBuffer.length < 32) {
-        throw new Error('Datos encriptados demasiado cortos')
+      if (encryptedBuffer.length < 16) {
+        throw new Error('Datos encriptados demasiado cortos para contener IV')
       }
       
       const iv = encryptedBuffer.slice(0, 16)
@@ -40,8 +46,8 @@ function decryptApiKey(encryptedApiKey: string): string {
       return decrypted
     }
   } catch (error) {
-    console.error('Error decrypting API key:', error)
-    return ''
+    console.error('❌ Error desencriptando API key:', error)
+    throw new Error(`No se pudo desencriptar la API key: ${error instanceof Error ? error.message : 'Error desconocido'}`)
   }
 }
 
@@ -156,40 +162,14 @@ export class LLMService {
       console.log(`🎯 Usando configuración: ${configuration.name}`)
       console.log(`📡 Provider: ${configuration.provider.name} - Model: ${configuration.model.name}`)
       
-      // 2. Obtener la API key del provider
-      let apiKey = ''
-      
-      // Primero intentar obtener de la base de datos (encriptada)
-      if ((configuration.provider as any).apiKeyEncrypted) {
-        apiKey = decryptApiKey((configuration.provider as any).apiKeyEncrypted)
-        console.log(`🔑 Intentando usar API key de la base de datos para ${configuration.provider.name}`)
-        
-        // Si la desencriptación falló (cadena vacía), usar variables de entorno como fallback
-        if (!apiKey) {
-          console.log(`⚠️ Desencriptación falló, usando variables de entorno como fallback para ${configuration.provider.name}`)
-          if (configuration.provider.name === 'openai') {
-            apiKey = process.env.OPENAI_API_KEY || ''
-          } else if (configuration.provider.name === 'anthropic') {
-            apiKey = process.env.ANTHROPIC_API_KEY || ''
-          }
-        } else {
-          console.log(`✅ API key desencriptada exitosamente para ${configuration.provider.name}`)
-        }
-      } else {
-        // No hay API key en BD, usar variables de entorno
-        console.log(`🔑 No hay API key en BD, usando variables de entorno para ${configuration.provider.name}`)
-        if (configuration.provider.name === 'openai') {
-          apiKey = process.env.OPENAI_API_KEY || ''
-        } else if (configuration.provider.name === 'anthropic') {
-          apiKey = process.env.ANTHROPIC_API_KEY || ''
-        }
+      // 2. Obtener la API key del provider (SOLO desde la base de datos)
+      if (!(configuration.provider as any).apiKeyEncrypted) {
+        throw new Error(`No hay API key configurada para el proveedor ${configuration.provider.name}. Debe configurarse desde la interfaz de administración.`)
       }
       
-      if (!apiKey) {
-        throw new Error(`API key no disponible para el proveedor ${configuration.provider.name}. Verificar configuración en base de datos o variables de entorno.`)
-      }
-      
-      console.log(`🔑 API key obtenida exitosamente para ${configuration.provider.name} (${apiKey.length} caracteres)`)
+             console.log(`🔑 Obteniendo API key de la base de datos para ${configuration.provider.name}`)
+       const apiKey = decryptApiKey((configuration.provider as any).apiKeyEncrypted)
+       console.log(`✅ API key obtenida exitosamente para ${configuration.provider.name} (${apiKey.length} caracteres)`)
       
       // 3. Llamar al proveedor específico
       let response: any
