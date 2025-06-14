@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
         isActive: true,
         OR: [
           { isPublic: true },
-          { isDefault: true }
+          { isDefault: true },
+          { createdBy: session.user.id } // Incluir filósofos creados por el usuario actual
         ]
       },
       select: {
