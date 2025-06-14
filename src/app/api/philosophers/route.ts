@@ -8,6 +8,7 @@ const createPhilosopherSchema = z.object({
   // Identidad básica
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100, 'El nombre es muy largo'),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres').max(2000, 'La descripción es muy larga'),
+  publicDescription: z.string().optional(),
   
   // Campos del Laboratorio
   photoUrl: z.union([
@@ -209,6 +210,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: validatedData.name,
         description: validatedData.description,
+        publicDescription: validatedData.publicDescription || null,
         photoUrl: validatedData.photoUrl || null,
         philosophicalSchool: validatedData.philosophicalSchool,
         inspirationSource: validatedData.inspirationSource || null,
