@@ -36,8 +36,8 @@ try {
     }
   } else {
     console.log('🗄️ Step 2: Apply database schema...');
-    console.log('Running: npx prisma db push');
-    execSync('npx prisma db push', { stdio: 'inherit' });
+    console.log('Running: npx prisma db push --accept-data-loss');
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
     
     console.log('🌱 Step 3: Seed essential data...');
     console.log('Running: npx tsx prisma/seed-essential.ts');
