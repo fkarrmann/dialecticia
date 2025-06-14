@@ -86,6 +86,13 @@
 - **Archivos modificados**:
   - `src/app/api/philosophers/route.ts` - Consulta GET con filtro expandido
 
+#### 9. **Error PrismaClientValidationError en configuración de timeline**
+- **Problema**: Error al intentar guardar modificaciones en el timeline de las etapas del diálogo: "Unknown argument `functionName`" en `prisma.lLMConfiguration.findUnique()`
+- **Causa**: Desalineación entre el schema de Prisma y el código - el modelo `LLMConfiguration` no tenía los campos `functionName`, `description` y `parameters` que el código esperaba
+- **Solución**: Actualizado el schema de Prisma para incluir los campos faltantes y hacer opcionales los campos de provider/model para configuraciones personalizadas
+- **Archivos modificados**:
+  - `prisma/schema.prisma` - Modelo LLMConfiguration actualizado con campos requeridos
+
 ### 🎯 Funcionalidades Restauradas
 
 - ✅ **Edición de System Prompts** - Funcional
@@ -98,6 +105,7 @@
 - ✅ **Generación de nuevos pensadores** - Funcional
 - ✅ **Creación completa de filósofos** - Funcional
 - ✅ **Visualización de filósofos creados por usuario** - Funcional
+- ✅ **Configuración de timeline de diálogo** - Funcional
 
 ## 🗺️ Mapeo de Campos Frontend ↔ Database
 
