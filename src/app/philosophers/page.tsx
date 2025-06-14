@@ -321,7 +321,7 @@ export default function PhilosophersPage() {
         tags: [], // Valor por defecto
         customPrompt: data.secretSauce, // Usar secretSauce como customPrompt
         coreBeliefs: coreBeliefs,
-        personalityTraits: data.personalityScores, // Mapear personalityScores
+        personalityScores: data.personalityScores, // ✅ CORREGIDO: usar personalityScores
         personalityAspects: data.attributes // Mapear attributes como personalityAspects
       }
       

@@ -463,8 +463,41 @@ Genera SOLO el texto de descripción, sin formato adicional ni etiquetas.`
     
     let description = llmResponse.content.trim()
     
-    // Limpiar cualquier formato extra
+    // Limpiar cualquier formato JSON que pueda haber al inicio
+    if (description.startsWith('{') && description.includes('}')) {
+      // Si empieza con JSON, buscar donde termina el JSON y extraer solo el texto después
+      const jsonEndIndex = description.indexOf('}')
+      if (jsonEndIndex !== -1) {
+        description = description.substring(jsonEndIndex + 1).trim()
+        console.log('🧹 Removido JSON del inicio de la descripción')
+      }
+    }
+    
+    // Limpiar markdown y formato extra
+    description = description.replace(/```json\n?|\n?```/g, '').trim()
     description = description.replace(/^["']|["']$/g, '').trim()
+    description = description.replace(/^\*\*.*?\*\*\s*/g, '').trim() // Remover títulos en bold al inicio
+    
+    // Si aún contiene formato JSON, intentar extraer solo texto natural
+    if (description.includes('"reasoning"') || description.includes('"formalidad"')) {
+      // Buscar texto después de cualquier JSON
+      const lines = description.split('\n')
+      const textLines = lines.filter(line => 
+        !line.trim().startsWith('{') && 
+        !line.trim().startsWith('}') && 
+        !line.includes('"reasoning"') &&
+        !line.includes('"formalidad"') &&
+        !line.includes('"agresividad"') &&
+        !line.includes('"humor"') &&
+        !line.includes('"complejidad"') &&
+        line.trim().length > 10
+      )
+      
+      if (textLines.length > 0) {
+        description = textLines.join(' ').trim()
+        console.log('🧹 Extraído solo texto natural de la respuesta mixta')
+      }
+    }
     
     console.log('✅ Descripción generada con LLM:', description.substring(0, 100) + '...')
     
@@ -472,6 +505,12 @@ Genera SOLO el texto de descripción, sin formato adicional ni etiquetas.`
     if (description.length > 1800) {
       description = description.substring(0, 1800).trim() + '...'
       console.log('✂️ Descripción recortada a 1800 caracteres')
+    }
+    
+    // Validar que tenemos una descripción válida
+    if (description.length < 50) {
+      console.log('⚠️ Descripción muy corta, usando fallback')
+      description = `${data.name} es un filósofo único inspirado en ${data.inspirationSource}, con una personalidad distintiva definida por: ${data.secretSauce}. Su estilo de debate se caracteriza por ${data.debateMechanics}, creando una experiencia filosófica memorable y auténtica.`
     }
     
     return description
