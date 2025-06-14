@@ -1,0 +1,175 @@
+# 🔧 Dialecticia - Estado de Debugging y Corrección de Errores
+
+## 📊 Estado Actual del Sistema
+
+### ✅ Problemas Resueltos
+
+#### 1. **Error "Endpoint temporarily disabled - schema mismatch"**
+- **Problema**: Endpoints de administración LLM deshabilitados por incompatibilidad de schema
+- **Causa**: Frontend esperaba campos diferentes a los del schema de base de datos
+- **Solución**: Mapeo de campos entre frontend y database schema
+- **Archivos modificados**:
+  - `src/app/api/admin/llm/prompts/[id]/route.ts` - Habilitado PUT/DELETE
+  - `src/app/api/admin/llm/prompts/route.ts` - Habilitado POST
+  - `src/app/api/admin/llm/models/route.ts` - Habilitado POST
+
+#### 2. **TypeError: Cannot read properties of undefined (reading 'interactions')**
+- **Problema**: Acceso no seguro a `_count.interactions` en componentes React
+- **Causa**: Componentes accedían directamente sin verificar si `_count` existe
+- **Solución**: Agregado safe navigation (`?.`) y fallbacks (`|| 0`)
+- **Archivos modificados**:
+  - `src/components/admin/LLMProvidersManager.tsx`
+  - `src/components/admin/LLMPromptsManager.tsx`
+
+#### 3. **Campos faltantes en respuestas de API**
+- **Problema**: APIs no devolvían campo `_count` esperado por frontend
+- **Causa**: Queries de Prisma no incluían `_count` con `interactions`
+- **Solución**: Agregado `_count` a todas las queries relevantes
+- **Archivos modificados**:
+  - `src/app/api/admin/llm/prompts/route.ts`
+  - `src/app/api/admin/llm/providers/route.ts`
+  - `src/app/api/admin/llm/models/route.ts`
+
+### 🎯 Funcionalidades Restauradas
+
+- ✅ **Edición de System Prompts** - Funcional
+- ✅ **Creación de nuevos Prompts** - Funcional
+- ✅ **Eliminación de Prompts** - Funcional
+- ✅ **Creación de nuevos Modelos** - Funcional
+- ✅ **Visualización de estadísticas LLM** - Funcional
+- ✅ **Página de administración LLM** - Carga sin errores
+
+## 🗺️ Mapeo de Campos Frontend ↔ Database
+
+### Prompts
+| Frontend Field | Database Field | Tipo |
+|----------------|----------------|------|
+| `displayName` | `name` | string |
+| `systemPrompt` | `template` | string |
+| `userPrompt` | - | dummy field |
+| `parameters` | - | dummy field |
+| `testData` | - | dummy field |
+| `modelId` | - | dummy field |
+
+### Models
+| Frontend Field | Database Field | Tipo |
+|----------------|----------------|------|
+| `modelName` | `modelIdentifier` | string |
+| `displayName` | `name` | string |
+| `capabilities` | `capabilities` | JSON string |
+| `parameters` | `parameters` | JSON string |
+
+## 🔍 Metodología de Debugging
+
+### 1. **Identificación de Errores**
+```bash
+# Revisar logs del navegador
+- Abrir DevTools → Console
+- Buscar errores JavaScript
+- Identificar stack trace y línea específica
+```
+
+### 2. **Localización del Problema**
+```bash
+# Buscar en el código
+grep -r "texto_del_error" src/
+grep -r "función_problemática" src/
+```
+
+### 3. **Análisis de Causa Raíz**
+- **Frontend Error**: Revisar componentes React y acceso a datos
+- **API Error**: Revisar endpoints y respuestas
+- **Database Error**: Revisar schema y queries de Prisma
+
+### 4. **Aplicación de Fix**
+- Modificar código
+- Commit con mensaje descriptivo
+- Push para deploy automático en Vercel
+- Verificar en producción
+
+### 5. **Verificación**
+- Probar funcionalidad específica
+- Revisar que no se introduzcan nuevos errores
+- Documentar el fix aplicado
+
+## 🚀 Proceso de Deploy
+
+### Comandos Estándar
+```bash
+git add .
+git commit -m "Fix: descripción del problema resuelto"
+git push origin main
+```
+
+### Tiempo de Deploy
+- **Vercel**: 1-2 minutos típicamente
+- **Verificación**: Esperar deploy completo antes de probar
+
+## 🛠️ Herramientas de Debugging
+
+### 1. **Búsqueda en Código**
+```bash
+# Buscar patrones específicos
+grep -r "pattern" src/
+grep -r "\.interactions" src/ --include="*.tsx"
+```
+
+### 2. **Análisis de APIs**
+```bash
+# Probar endpoints directamente
+curl -X GET "https://dialecticia.vercel.app/api/admin/llm/prompts"
+```
+
+### 3. **Revisión de Schema**
+```bash
+# Verificar estructura de base de datos
+cat prisma/schema.prisma | grep -A 10 "model PromptTemplate"
+```
+
+## 📋 Checklist para Nuevos Errores
+
+### Antes de Empezar
+- [ ] Identificar error exacto en console del navegador
+- [ ] Copiar stack trace completo
+- [ ] Identificar qué acción del usuario causó el error
+
+### Durante el Debug
+- [ ] Localizar archivo y línea específica del error
+- [ ] Entender la causa raíz (frontend/backend/database)
+- [ ] Verificar si hay otros lugares con el mismo patrón
+- [ ] Aplicar fix con null safety cuando sea apropiado
+
+### Después del Fix
+- [ ] Commit con mensaje descriptivo
+- [ ] Push y esperar deploy
+- [ ] Probar funcionalidad específica
+- [ ] Verificar que no se rompió nada más
+- [ ] Actualizar este documento si es necesario
+
+## 🎯 Próximos Pasos Recomendados
+
+### Si aparecen nuevos errores:
+1. **Seguir la metodología establecida**
+2. **Documentar el problema y solución**
+3. **Verificar patrones similares en el código**
+4. **Aplicar fixes preventivos cuando sea posible**
+
+### Mejoras preventivas sugeridas:
+- Agregar más validaciones de null safety en componentes
+- Implementar error boundaries en React
+- Agregar logging más detallado en APIs
+- Crear tests unitarios para componentes críticos
+
+## 📞 Contacto y Soporte
+
+Para reportar nuevos errores, proporcionar:
+1. **Screenshot del error** (si es visual)
+2. **Mensaje de error completo** del console
+3. **Pasos para reproducir** el error
+4. **URL específica** donde ocurre
+
+---
+
+**Última actualización**: $(date)
+**Estado del sistema**: ✅ Funcional
+**Próxima revisión**: Cuando aparezcan nuevos errores 
