@@ -308,6 +308,13 @@ export class LLMService {
   private static async callAnthropic(provider: any, model: any, apiKey: string, request: LLMRequest, config: any) {
     const baseUrl = provider.baseUrl || 'https://api.anthropic.com/v1'
     
+    console.log('🔍 ANTHROPIC DEBUG: Iniciando llamada a Anthropic...')
+    console.log(`📊 Provider: ${provider.name}`)
+    console.log(`📊 Model: ${model.name} (${model.modelIdentifier})`)
+    console.log(`📊 Base URL: ${baseUrl}`)
+    console.log(`📊 API Key length: ${apiKey.length}`)
+    console.log(`📊 Function: ${request.functionName}`)
+    
     // Convertir formato de mensajes de OpenAI a Anthropic
     const systemMessage = request.messages.find(m => m.role === 'system')
     const userMessages = request.messages.filter(m => m.role !== 'system')
@@ -317,6 +324,22 @@ export class LLMService {
       content: msg.content
     }))
     
+    const payload = {
+      model: model.modelIdentifier,
+      max_tokens: request.maxTokens || config.maxTokens || model.maxTokens || 4000,
+      temperature: request.temperature || config.temperature || 0.7,
+      system: systemMessage?.content || '',
+      messages: anthropicMessages
+    }
+    
+    console.log('📤 ANTHROPIC PAYLOAD:')
+    console.log(`   Model: ${payload.model}`)
+    console.log(`   Max tokens: ${payload.max_tokens}`)
+    console.log(`   Temperature: ${payload.temperature}`)
+    console.log(`   System length: ${payload.system.length}`)
+    console.log(`   Messages count: ${payload.messages.length}`)
+    console.log(`   First message: ${payload.messages[0]?.content?.substring(0, 100)}...`)
+    
     const response = await fetch(`${baseUrl}/messages`, {
       method: 'POST',
       headers: {
@@ -324,21 +347,20 @@ export class LLMService {
         'Content-Type': 'application/json',
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify({
-        model: model.modelIdentifier,
-        max_tokens: request.maxTokens || config.maxTokens || model.maxTokens || 4000,
-        temperature: request.temperature || config.temperature || 0.7,
-        system: systemMessage?.content || '',
-        messages: anthropicMessages
-      })
+      body: JSON.stringify(payload)
     })
+
+    console.log(`📥 ANTHROPIC RESPONSE: Status ${response.status}`)
 
     if (!response.ok) {
       const error = await response.text()
+      console.error('❌ ANTHROPIC ERROR RESPONSE:', error)
+      console.error('❌ PAYLOAD QUE CAUSÓ EL ERROR:', JSON.stringify(payload, null, 2))
       throw new Error(`Anthropic API error: ${response.status} - ${error}`)
     }
 
     const result = await response.json()
+    console.log('✅ ANTHROPIC SUCCESS: Response received')
     
     return {
       response: result.content[0].text,
