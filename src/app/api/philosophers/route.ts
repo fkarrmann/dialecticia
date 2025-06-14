@@ -190,8 +190,17 @@ export async function POST(request: NextRequest) {
     
     // DEBUG: Verificar qué estamos recibiendo
     console.log('📝 Datos recibidos en POST /api/philosophers:', JSON.stringify(body, null, 2))
+    console.log('🔍 Campos críticos:')
+    console.log('  - name:', body.name)
+    console.log('  - description:', body.description ? `${body.description.length} chars` : 'undefined')
+    console.log('  - argumentStyle:', body.argumentStyle ? `${body.argumentStyle.length} chars` : 'undefined')
+    console.log('  - questioningApproach:', body.questioningApproach ? `${body.questioningApproach.length} chars` : 'undefined')
+    console.log('  - philosophicalSchool:', body.philosophicalSchool)
+    console.log('  - coreBeliefs:', Array.isArray(body.coreBeliefs) ? `Array[${body.coreBeliefs.length}]` : typeof body.coreBeliefs)
 
+    console.log('🔄 Iniciando validación con Zod...')
     const validatedData = createPhilosopherSchema.parse(body)
+    console.log('✅ Validación exitosa')
 
     // Verificar que no exista un filósofo con el mismo nombre
     const existingPhilosopher = await prisma.philosopher.findUnique({
@@ -279,6 +288,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error creating philosopher:', error)
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack available')
+    console.error('❌ Error message:', error instanceof Error ? error.message : String(error))
     
     if (error instanceof z.ZodError) {
       console.error('🔍 Detalles de validación:', error.errors)
@@ -292,6 +303,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: 'Error interno del servidor',
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 })
   }
 }
