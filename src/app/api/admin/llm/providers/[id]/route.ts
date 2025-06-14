@@ -201,15 +201,23 @@ export async function PUT(
 
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('❌ Validation error:', error.errors)
       return NextResponse.json(
         { error: 'Invalid input', details: error.errors },
         { status: 400 }
       )
     }
 
-    console.error('Error updating provider:', error)
+    console.error('❌ Error updating provider:', error)
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack')
+    console.error('❌ Error message:', error instanceof Error ? error.message : 'Unknown error')
+    
     return NextResponse.json(
-      { error: 'Failed to update provider' },
+      { 
+        error: 'Failed to update provider',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack'
+      },
       { status: 500 }
     )
   }
