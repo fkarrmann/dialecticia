@@ -356,7 +356,7 @@ export default function LLMPromptsManager() {
             <div>
               <p className="text-slate-400 text-sm">Interacciones</p>
               <p className="text-2xl font-bold text-yellow-400">
-                {prompts.reduce((total, p) => total + p._count.interactions, 0)}
+                {prompts.reduce((total, p) => total + (p._count?.interactions || 0), 0)}
               </p>
             </div>
             <RefreshCw className="w-8 h-8 text-yellow-400" />
@@ -594,7 +594,7 @@ export default function LLMPromptsManager() {
                       )}
                       
                       <div className="flex items-center space-x-4 mt-3 text-sm text-slate-400">
-                        <span>Interacciones: {activeVersion._count.interactions}</span>
+                        <span>Interacciones: {activeVersion._count?.interactions || 0}</span>
                         <span>Longitud: {activeVersion.systemPrompt.length} chars</span>
                         {activeVersion.userPrompt && (
                           <span>+ User Prompt ({activeVersion.userPrompt.length} chars)</span>

@@ -316,7 +316,7 @@ export default function LLMProvidersManager() {
             <div>
               <p className="text-slate-400 text-sm">Interacciones</p>
               <p className="text-2xl font-bold text-yellow-400">
-                {providers.reduce((total, p) => total + p._count.interactions, 0)}
+                {providers.reduce((total, p) => total + (p._count?.interactions || 0), 0)}
               </p>
             </div>
             <RefreshCw className="w-8 h-8 text-yellow-400" />
@@ -498,7 +498,7 @@ export default function LLMProvidersManager() {
                     
                     <div className="flex items-center space-x-4 mt-2 text-sm text-slate-400">
                       <span>Modelos: {provider.models.length}</span>
-                      <span>Interacciones: {provider._count.interactions}</span>
+                      <span>Interacciones: {provider._count?.interactions || 0}</span>
                       <span>Max Tokens: {provider.maxTokens.toLocaleString()}</span>
                       {provider.hasApiKey && (
                         <div className="flex items-center space-x-2">
