@@ -274,17 +274,20 @@ model LLMInteraction {
 
 model LLMConfiguration {
   id                String          @id @default(cuid())
-  name              String          @unique
-  providerId        String
-  modelId           String
+  name              String?
+  functionName      String?         @unique
+  description       String?
+  parameters        String?
+  providerId        String?
+  modelId           String?
   promptTemplateId  String?
   maxTokens         Int             @default(1000)
   temperature       Float           @default(0.7)
   isActive          Boolean         @default(true)
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
-  provider          LLMProvider     @relation(fields: [providerId], references: [id])
-  model             LLMModel        @relation(fields: [modelId], references: [id])
+  provider          LLMProvider?    @relation(fields: [providerId], references: [id])
+  model             LLMModel?       @relation(fields: [modelId], references: [id])
   promptTemplate    PromptTemplate? @relation(fields: [promptTemplateId], references: [id])
 
   @@map("llm_configurations")
