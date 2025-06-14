@@ -19,39 +19,45 @@ function decryptApiKey(encryptedApiKey: string): string {
       return encryptedApiKey
     }
     
-    // Verificar si es un formato válido de hex
+    // Verificar si es el nuevo formato con IV (contiene ':')
+    if (encryptedApiKey.includes(':')) {
+      console.log('🔓 Detectado formato moderno con IV')
+      try {
+        const [ivHex, encryptedHex] = encryptedApiKey.split(':')
+        const iv = Buffer.from(ivHex, 'hex')
+        const encrypted = Buffer.from(encryptedHex, 'hex')
+        const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32)
+        
+        const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
+        let decrypted = decipher.update(encrypted, undefined, 'utf8')
+        decrypted += decipher.final('utf8')
+        console.log('✅ API key desencriptada con método moderno')
+        return decrypted
+      } catch (modernError) {
+        console.error('❌ Error con método moderno:', modernError)
+        throw modernError
+      }
+    }
+    
+    // Verificar si es un formato válido de hex (método legacy)
     if (!/^[0-9a-fA-F]+$/.test(encryptedApiKey)) {
-      console.error('❌ Formato de API key encriptada inválido (no es hex)')
+      console.error('❌ Formato de API key encriptada inválido')
       throw new Error('Formato de API key encriptada inválido')
     }
     
-    // Intentar desencriptar usando el método moderno primero
+    // Fallback al método legacy para compatibilidad
+    console.log('🔓 Usando método legacy')
     try {
-      // Extraer IV y datos encriptados (método moderno)
-      const iv = Buffer.from(encryptedApiKey.slice(0, 32), 'hex')
-      const encrypted = Buffer.from(encryptedApiKey.slice(32), 'hex')
-      const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32)
-      
-      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
-      let decrypted = decipher.update(encrypted, undefined, 'utf8')
+      const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY)
+      let decrypted = decipher.update(encryptedApiKey, 'hex', 'utf8')
       decrypted += decipher.final('utf8')
-      console.log('🔓 API key desencriptada con método moderno')
+      console.log('✅ API key desencriptada con método legacy')
       return decrypted
-    } catch (modernError) {
-      console.log('⚠️ Método moderno falló, intentando método legacy...')
-      
-      // Fallback al método legacy para compatibilidad
-      try {
-        const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY)
-        let decrypted = decipher.update(encryptedApiKey, 'hex', 'utf8')
-        decrypted += decipher.final('utf8')
-        console.log('🔓 API key desencriptada con método legacy')
-        return decrypted
-      } catch (legacyError) {
-        console.log('❌ Ambos métodos de desencriptación fallaron')
-        throw legacyError
-      }
+    } catch (legacyError) {
+      console.error('❌ Error con método legacy:', legacyError)
+      throw legacyError
     }
+    
   } catch (error) {
     console.error('Error decrypting API key:', error)
     throw new Error('Failed to decrypt API key')
