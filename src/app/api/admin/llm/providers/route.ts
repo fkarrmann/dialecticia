@@ -76,6 +76,11 @@ export async function GET(request: NextRequest) {
             modelIdentifier: true,
             isActive: true,
             costPer1kTokens: true,
+            _count: {
+              select: {
+                interactions: true
+              }
+            }
           }
         },
         _count: {
@@ -101,9 +106,11 @@ export async function GET(request: NextRequest) {
       apiKeyPreview: null, // No hay campo apiKey en schema actual
       modelsCount: provider.models.length,
       configurationsCount: provider._count.configurations,
-      // Cambiar _count para que tenga lo que espera el frontend
+      // Preserve _count but add interactions field
       _count: {
-        interactions: 0 // Campo que espera el frontend pero no tenemos relación directa
+        interactions: provider.models.reduce((total, model) => total + (model._count?.interactions || 0), 0),
+        models: provider.models.length,
+        configurations: provider._count.configurations
       }
     }))
 

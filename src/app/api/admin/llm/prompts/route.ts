@@ -42,7 +42,8 @@ export async function GET(request: NextRequest) {
       include: {
         _count: {
           select: {
-            interactions: true
+            interactions: true,
+            configurations: true
           }
         }
       },
@@ -64,7 +65,12 @@ export async function GET(request: NextRequest) {
       testData: null, // Campo dummy
       version: '1.0.0', // Versión dummy
       modelId: null, // Campo dummy
-      model: null // Campo dummy
+      model: null, // Campo dummy
+      // Preserve _count from database
+      _count: {
+        interactions: prompt._count.interactions || 0,
+        configurations: prompt._count.configurations || 0
+      }
     }))
 
     return NextResponse.json(safePrompts)

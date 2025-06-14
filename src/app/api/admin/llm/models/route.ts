@@ -42,7 +42,8 @@ export async function GET(request: NextRequest) {
         },
         _count: {
           select: {
-            interactions: true
+            interactions: true,
+            configurations: true
           }
         }
       },
@@ -63,6 +64,11 @@ export async function GET(request: NextRequest) {
       provider: {
         ...model.provider,
         displayName: model.provider.name // Agregar displayName al provider
+      },
+      // Preserve _count from database
+      _count: {
+        interactions: model._count.interactions || 0,
+        configurations: model._count.configurations || 0
       }
     }))
 
