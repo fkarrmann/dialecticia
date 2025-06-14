@@ -39,6 +39,16 @@
 - **Archivos modificados**:
   - `src/lib/llm.ts` - Función `selectAntagonisticPhilosopher`
 
+#### 5. **Error "undefined" en generación de nuevos pensadores**
+- **Problema**: Al generar nuevos filósofos, el campo "Descripción Filosófica" mostraba variables sin reemplazar como `DESCRIPCION: [falta completar]`, `ESTILO_ARGUMENTATIVO: [falta completar]`, `ENFOQUE_CUESTIONAMIENTO: [falta completar]`
+- **Causa**: Desalineación entre las variables del prompt template en la base de datos y las variables que se reemplazaban en el código:
+  - BD: `{DESCRIPCION}` (sin tilde) vs Código: `{DESCRIPCIÓN}` (con tilde)
+  - BD: `{ESTILO_ARGUMENTATIVO}` vs Código: `{ESTILO_ARGUMENTACION}`
+  - BD: `{ENFOQUE_CUESTIONAMIENTO}` vs Código: No se reemplazaba
+- **Solución**: Agregado soporte para todas las variables del prompt template de BD, manteniendo compatibilidad con versiones anteriores
+- **Archivos modificados**:
+  - `src/app/api/admin/philosophers/generate-final-result/route.ts` - Función `generateDescription`
+
 ### 🎯 Funcionalidades Restauradas
 
 - ✅ **Edición de System Prompts** - Funcional
@@ -48,6 +58,7 @@
 - ✅ **Visualización de estadísticas LLM** - Funcional
 - ✅ **Página de administración LLM** - Carga sin errores
 - ✅ **Selección de filósofo antagonista** - Funcional
+- ✅ **Generación de nuevos pensadores** - Funcional
 
 ## 🗺️ Mapeo de Campos Frontend ↔ Database
 
