@@ -79,6 +79,13 @@
   - Base de datos: Nuevo prompt template `questioning_approach_generation`
   - `src/app/api/philosophers/route.ts` - Schema de validación y creación
 
+#### 8. **Filósofos creados no aparecen en la página**
+- **Problema**: Después de crear un filósofo exitosamente, no aparece en la lista de filósofos disponibles
+- **Causa**: La consulta GET solo incluía filósofos públicos (`isPublic: true`) o por defecto (`isDefault: true`), excluyendo filósofos privados creados por usuarios
+- **Solución**: Agregado `createdBy: session.user.id` al filtro OR para incluir filósofos creados por el usuario actual
+- **Archivos modificados**:
+  - `src/app/api/philosophers/route.ts` - Consulta GET con filtro expandido
+
 ### 🎯 Funcionalidades Restauradas
 
 - ✅ **Edición de System Prompts** - Funcional
@@ -90,6 +97,7 @@
 - ✅ **Selección de filósofo antagonista** - Funcional
 - ✅ **Generación de nuevos pensadores** - Funcional
 - ✅ **Creación completa de filósofos** - Funcional
+- ✅ **Visualización de filósofos creados por usuario** - Funcional
 
 ## 🗺️ Mapeo de Campos Frontend ↔ Database
 
