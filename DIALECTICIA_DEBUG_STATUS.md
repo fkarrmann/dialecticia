@@ -64,6 +64,21 @@
   - `src/app/api/admin/philosophers/generate-final-result/route.ts` - Función `generateDescription`
   - `src/app/philosophers/page.tsx` - Función `handleCreatePhilosopher`
 
+#### 7. **Fallbacks en creencias fundamentales y error en creación final**
+- **Problema**: 
+  1. Las creencias fundamentales caían en fallback por falta de prompt template `questioning_approach_generation`
+  2. Error al crear el filósofo por campo `publicDescription` faltante en schema de validación
+- **Causa**: 
+  1. Prompt template `questioning_approach_generation` no existía en la base de datos
+  2. Frontend enviaba `publicDescription` pero el schema de validación no lo incluía
+- **Solución**: 
+  1. Creado prompt template `questioning_approach_generation` en la base de datos
+  2. Agregado campo `publicDescription` al schema de validación y creación
+  3. Verificados todos los prompt templates necesarios (3/3 disponibles)
+- **Archivos modificados**:
+  - Base de datos: Nuevo prompt template `questioning_approach_generation`
+  - `src/app/api/philosophers/route.ts` - Schema de validación y creación
+
 ### 🎯 Funcionalidades Restauradas
 
 - ✅ **Edición de System Prompts** - Funcional
@@ -74,6 +89,7 @@
 - ✅ **Página de administración LLM** - Carga sin errores
 - ✅ **Selección de filósofo antagonista** - Funcional
 - ✅ **Generación de nuevos pensadores** - Funcional
+- ✅ **Creación completa de filósofos** - Funcional
 
 ## 🗺️ Mapeo de Campos Frontend ↔ Database
 
