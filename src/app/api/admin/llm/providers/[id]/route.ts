@@ -6,7 +6,13 @@ import { z } from 'zod'
 import crypto from 'crypto'
 
 // RECREATED: Fixed for Next.js 15 params typing
-const ENCRYPTION_KEY = process.env.LLM_ENCRYPTION_KEY || 'dev-key-32-chars-long-for-testing'
+const ENCRYPTION_KEY = (() => {
+  const key = process.env.LLM_ENCRYPTION_KEY
+  if (!key) {
+    throw new Error('LLM_ENCRYPTION_KEY environment variable is required')
+  }
+  return key
+})()
 
 function encryptApiKey(apiKey: string): string {
   if (!apiKey) return ''

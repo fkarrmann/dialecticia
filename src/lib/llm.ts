@@ -1,4 +1,3 @@
-import OpenAI from 'openai'
 import { Philosopher } from '@prisma/client'
 import { parsePersonalityTraits, parseCoreBeliefs } from './utils'
 import { getSocraticPrompt, getPhilosopherTemplate } from './prompts'
@@ -6,16 +5,7 @@ import { generatePhilosopherChatResponse } from './philosopher-chat-service'
 import { LLMService } from './llm-service'
 import { prisma } from './db'
 
-// Configuration
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini'
-
-// Initialize OpenAI client (only if we have an API key) - LEGACY SYSTEM
-const openai = OPENAI_API_KEY ? new OpenAI({
-  apiKey: OPENAI_API_KEY,
-}) : null
-
-console.log('🚀 LLM using ONLY new database-driven system - NO MOCK, NO FALLBACK')
+console.log('🚀 LLM using ONLY new database-driven system - NO ENVIRONMENT VARIABLES, NO FALLBACKS')
 
 // Available models for reference
 const AVAILABLE_MODELS = {

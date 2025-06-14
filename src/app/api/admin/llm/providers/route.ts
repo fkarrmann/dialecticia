@@ -4,8 +4,14 @@ import { getCurrentSession } from '@/lib/auth'
 import crypto from 'crypto'
 import { z } from 'zod'
 
-// Encryption key
-const ENCRYPTION_KEY = process.env.LLM_ENCRYPTION_KEY || 'dev-key-32-chars-long-for-testing'
+// Encryption key - NO FALLBACK ALLOWED
+const ENCRYPTION_KEY = (() => {
+  const key = process.env.LLM_ENCRYPTION_KEY
+  if (!key) {
+    throw new Error('LLM_ENCRYPTION_KEY environment variable is required')
+  }
+  return key
+})()
 
 function encryptApiKey(apiKey: string): string {
   if (!apiKey) return ''

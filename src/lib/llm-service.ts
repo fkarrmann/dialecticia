@@ -1,7 +1,13 @@
 import { prisma } from '@/lib/db'
 import crypto from 'crypto'
 
-const ENCRYPTION_KEY = process.env.LLM_ENCRYPTION_KEY || 'dev-key-32-chars-long-for-testing'
+const ENCRYPTION_KEY = (() => {
+  const key = process.env.LLM_ENCRYPTION_KEY
+  if (!key) {
+    throw new Error('LLM_ENCRYPTION_KEY environment variable is required. No fallback allowed in production.')
+  }
+  return key
+})()
 
 function decryptApiKey(encryptedApiKey: string): string {
   if (!encryptedApiKey) return ''
@@ -47,8 +53,8 @@ function decryptApiKey(encryptedApiKey: string): string {
       }
     }
   } catch (error) {
-    console.error('❌ Error desencriptando API key:', error)
-    throw new Error(`No se pudo desencriptar la API key: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+    console.error('Error decrypting API key:', error)
+    throw new Error('Failed to decrypt API key')
   }
 }
 
