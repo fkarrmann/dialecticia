@@ -81,10 +81,83 @@ export async function GET(request: NextRequest) {
 // POST: Create new prompt template
 export async function POST(request: NextRequest) {
   try {
-    return NextResponse.json(
-      { error: 'Endpoint temporarily disabled - schema mismatch' },
-      { status: 501 }
-    )
+    const session = await getCurrentSession()
+    
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      )
+    }
+
+    const body = await request.json()
+    console.log('🔧 Creating prompt with data:', body)
+
+    // Map frontend fields to database schema
+    const createData: any = {
+      category: body.category || 'general',
+      isActive: body.isActive !== undefined ? body.isActive : true
+    }
+    
+    // Map required fields
+    if (body.name) {
+      createData.name = body.name
+    } else if (body.displayName) {
+      createData.name = body.displayName // displayName maps to name
+    } else {
+      return NextResponse.json(
+        { error: 'Name is required' },
+        { status: 400 }
+      )
+    }
+
+    if (body.systemPrompt) {
+      createData.template = body.systemPrompt // systemPrompt maps to template
+    } else {
+      return NextResponse.json(
+        { error: 'System prompt is required' },
+        { status: 400 }
+      )
+    }
+
+    if (body.description) createData.description = body.description
+
+    console.log('🔧 Mapped create data:', createData)
+
+    // Check if prompt name already exists
+    const existingPrompt = await prisma.promptTemplate.findUnique({
+      where: { name: createData.name }
+    })
+
+    if (existingPrompt) {
+      return NextResponse.json(
+        { error: 'Prompt with this name already exists' },
+        { status: 400 }
+      )
+    }
+
+    const newPrompt = await prisma.promptTemplate.create({
+      data: createData
+    })
+
+    console.log('✅ Prompt created successfully:', newPrompt.name)
+
+    // Return with frontend-compatible format
+    const responsePrompt = {
+      ...newPrompt,
+      displayName: newPrompt.name,
+      systemPrompt: newPrompt.template,
+      userPrompt: '',
+      usage: newPrompt.description || '',
+      parameters: null,
+      testData: null,
+      version: '1.0.0',
+      modelId: null,
+      model: null
+    }
+
+    return NextResponse.json(responsePrompt, { status: 201 })
+
   } catch (error) {
     console.error('Error creating prompt:', error)
     return NextResponse.json(

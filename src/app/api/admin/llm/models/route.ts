@@ -80,10 +80,115 @@ export async function GET(request: NextRequest) {
 // POST: Create new model
 export async function POST(request: NextRequest) {
   try {
-    return NextResponse.json(
-      { error: 'Endpoint temporarily disabled - schema mismatch' },
-      { status: 501 }
-    )
+    const session = await getCurrentSession()
+    
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      )
+    }
+
+    const body = await request.json()
+    console.log('🔧 Creating model with data:', body)
+
+    // Map frontend fields to database schema
+    const createData: any = {
+      isActive: body.isActive !== undefined ? body.isActive : true
+    }
+    
+    // Map required fields
+    if (!body.providerId) {
+      return NextResponse.json(
+        { error: 'Provider ID is required' },
+        { status: 400 }
+      )
+    }
+    createData.providerId = body.providerId
+
+    if (body.modelName) {
+      createData.modelIdentifier = body.modelName // modelName maps to modelIdentifier
+      createData.name = body.modelName // Also use as name
+    } else {
+      return NextResponse.json(
+        { error: 'Model name is required' },
+        { status: 400 }
+      )
+    }
+
+    if (body.displayName) {
+      createData.name = body.displayName // displayName maps to name
+    }
+
+    // Optional fields
+    if (body.maxTokens) createData.maxTokens = body.maxTokens
+    if (body.costPer1kInput) createData.costPer1kInput = body.costPer1kInput
+    if (body.costPer1kOutput) createData.costPer1kOutput = body.costPer1kOutput
+    if (body.capabilities) createData.capabilities = JSON.stringify(body.capabilities)
+    if (body.parameters) createData.parameters = JSON.stringify(body.parameters)
+    if (body.usageFunction) createData.usageFunction = body.usageFunction
+
+    console.log('🔧 Mapped create data:', createData)
+
+    // Check if provider exists
+    const provider = await prisma.lLMProvider.findUnique({
+      where: { id: createData.providerId }
+    })
+
+    if (!provider) {
+      return NextResponse.json(
+        { error: 'Provider not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if model identifier is unique within provider
+    const existingModel = await prisma.lLMModel.findFirst({
+      where: { 
+        providerId: createData.providerId,
+        modelIdentifier: createData.modelIdentifier
+      }
+    })
+
+    if (existingModel) {
+      return NextResponse.json(
+        { error: 'Model with this identifier already exists for this provider' },
+        { status: 400 }
+      )
+    }
+
+    const newModel = await prisma.lLMModel.create({
+      data: createData,
+      include: {
+        provider: {
+          select: {
+            id: true,
+            name: true,
+            isActive: true
+          }
+        }
+      }
+    })
+
+    console.log('✅ Model created successfully:', newModel.name)
+
+    // Return with frontend-compatible format
+    const responseModel = {
+      ...newModel,
+      displayName: newModel.name,
+      modelName: newModel.modelIdentifier,
+      costPer1kInput: newModel.costPer1kInput || 0.002,
+      costPer1kOutput: newModel.costPer1kOutput || 0.002,
+      capabilities: newModel.capabilities ? JSON.parse(newModel.capabilities) : null,
+      parameters: newModel.parameters ? JSON.parse(newModel.parameters) : null,
+      provider: {
+        ...newModel.provider,
+        displayName: newModel.provider.name
+      }
+    }
+
+    return NextResponse.json(responseModel, { status: 201 })
+
   } catch (error) {
     console.error('Error creating model:', error)
     return NextResponse.json(
