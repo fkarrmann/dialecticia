@@ -49,6 +49,21 @@
 - **Archivos modificados**:
   - `src/app/api/admin/philosophers/generate-final-result/route.ts` - Función `generateDescription`
 
+#### 6. **Formato incorrecto de descripción y error en creación de filósofos**
+- **Problema**: 
+  1. La descripción filosófica llegaba con formato JSON + texto en lugar de solo texto natural
+  2. Error al crear el filósofo por mapeo incorrecto de datos (`personalityTraits` vs `personalityScores`)
+- **Causa**: 
+  1. El LLM devolvía respuestas mixtas con JSON y texto, sin limpieza adecuada
+  2. El frontend enviaba `personalityTraits` pero el API esperaba `personalityScores`
+- **Solución**: 
+  1. Agregada limpieza avanzada de formato JSON/markdown en descripciones
+  2. Corregido mapeo de datos en `handleCreatePhilosopher`
+  3. Agregadas validaciones y fallbacks para descripciones muy cortas
+- **Archivos modificados**:
+  - `src/app/api/admin/philosophers/generate-final-result/route.ts` - Función `generateDescription`
+  - `src/app/philosophers/page.tsx` - Función `handleCreatePhilosopher`
+
 ### 🎯 Funcionalidades Restauradas
 
 - ✅ **Edición de System Prompts** - Funcional
