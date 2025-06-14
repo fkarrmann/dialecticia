@@ -315,21 +315,51 @@ const generateDescription = async (data: any, personalityScores: any[]) => {
         console.log('🔄 Reemplazado NOMBRE_FILOSOFO')
       }
       
-      // Variables específicas del prompt personality_analysis
+      // Variables específicas del prompt personality_analysis (según BD)
       if (finalPrompt.includes('{NOMBRE}')) {
         finalPrompt = finalPrompt.replace(/{NOMBRE}/g, data.name)
         console.log('🔄 Reemplazado NOMBRE')
       }
+      
+      // DESCRIPCION (sin tilde, como está en la BD)
+      if (finalPrompt.includes('{DESCRIPCION}')) {
+        const tempDescription = `Un filósofo inspirado en ${data.inspirationSource}, con una personalidad única definida por: ${data.secretSauce}. Su estilo de debate es ${data.debateMechanics}.`
+        finalPrompt = finalPrompt.replace(/{DESCRIPCION}/g, tempDescription)
+        console.log('🔄 Reemplazado DESCRIPCION')
+      }
+      
+      // También manejar la versión con tilde por compatibilidad
       if (finalPrompt.includes('{DESCRIPCIÓN}')) {
-        // Crear una descripción básica temporal para el análisis
         const tempDescription = `Un filósofo inspirado en ${data.inspirationSource}, con una personalidad única definida por: ${data.secretSauce}. Su estilo de debate es ${data.debateMechanics}.`
         finalPrompt = finalPrompt.replace(/{DESCRIPCIÓN}/g, tempDescription)
         console.log('🔄 Reemplazado DESCRIPCIÓN')
       }
+      
       if (finalPrompt.includes('{ESCUELA_FILOSOFICA}') || finalPrompt.includes('{ESCUELA_FILOSÓFICA}')) {
         finalPrompt = finalPrompt.replace(/{ESCUELA_FILOSOFICA}/g, data.inspirationSource)
         finalPrompt = finalPrompt.replace(/{ESCUELA_FILOSÓFICA}/g, data.inspirationSource)
         console.log('🔄 Reemplazado ESCUELA_FILOSOFICA')
+      }
+      
+      // ESTILO_ARGUMENTATIVO (como está en la BD)
+      if (finalPrompt.includes('{ESTILO_ARGUMENTATIVO}')) {
+        const estiloArgumentativo = `Su estilo de argumentación se caracteriza por ser ${data.debateMechanics}, con un enfoque en ${data.secretSauce}.`
+        finalPrompt = finalPrompt.replace(/{ESTILO_ARGUMENTATIVO}/g, estiloArgumentativo)
+        console.log('🔄 Reemplazado ESTILO_ARGUMENTATIVO')
+      }
+      
+      // ENFOQUE_CUESTIONAMIENTO (nueva variable que faltaba)
+      if (finalPrompt.includes('{ENFOQUE_CUESTIONAMIENTO}')) {
+        const enfoqueQuestionamiento = `Su enfoque de cuestionamiento se basa en ${data.debateMechanics}, utilizando la perspectiva de ${data.inspirationSource} para desafiar ideas establecidas.`
+        finalPrompt = finalPrompt.replace(/{ENFOQUE_CUESTIONAMIENTO}/g, enfoqueQuestionamiento)
+        console.log('🔄 Reemplazado ENFOQUE_CUESTIONAMIENTO')
+      }
+      
+      // Mantener compatibilidad con versiones anteriores
+      if (finalPrompt.includes('{INSPIRACION}') || finalPrompt.includes('{INSPIRACIÓN}')) {
+        finalPrompt = finalPrompt.replace(/{INSPIRACION}/g, data.inspirationSource)
+        finalPrompt = finalPrompt.replace(/{INSPIRACIÓN}/g, data.inspirationSource)
+        console.log('🔄 Reemplazado INSPIRACION')
       }
       if (finalPrompt.includes('{CREENCIAS_CENTRALES}')) {
         const creenciasCentrales = `Sus ideas centrales giran en torno a: ${data.secretSauce}. Utiliza un enfoque de debate ${data.debateMechanics}.`
