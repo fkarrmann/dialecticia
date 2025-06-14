@@ -30,6 +30,15 @@
   - `src/app/api/admin/llm/providers/route.ts`
   - `src/app/api/admin/llm/models/route.ts`
 
+#### 4. **Error "Error interno del servidor" en selección de antagonista**
+- **Problema**: Función de seleccionar antagonista fallaba con error interno
+- **Causa**: Mismatch entre campos del prompt template y código de parsing
+  - Prompt devuelve: `suggestedPhilosopher` (nombre del filósofo)
+  - Código esperaba: `suggestedPhilosopherId` (ID del filósofo)
+- **Solución**: Corregido parsing para buscar por nombre y mapear a ID
+- **Archivos modificados**:
+  - `src/lib/llm.ts` - Función `selectAntagonisticPhilosopher`
+
 ### 🎯 Funcionalidades Restauradas
 
 - ✅ **Edición de System Prompts** - Funcional
@@ -38,6 +47,7 @@
 - ✅ **Creación de nuevos Modelos** - Funcional
 - ✅ **Visualización de estadísticas LLM** - Funcional
 - ✅ **Página de administración LLM** - Carga sin errores
+- ✅ **Selección de filósofo antagonista** - Funcional
 
 ## 🗺️ Mapeo de Campos Frontend ↔ Database
 
