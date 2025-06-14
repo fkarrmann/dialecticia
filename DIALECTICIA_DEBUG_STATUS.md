@@ -93,6 +93,13 @@
 - **Archivos modificados**:
   - `prisma/schema.prisma` - Modelo LLMConfiguration actualizado con campos requeridos
 
+#### 10. **Deployment Failure Due to Unique Constraint**
+- **Problema**: Deployment failed with error "A unique constraint covering the columns `[functionName]` on the table `llm_configurations` will be added. If there are existing duplicate values, this will fail."
+- **Causa**: Build script running `npx prisma db push` without `--accept-data-loss` flag when adding unique constraint to `functionName` column that might have duplicate values.
+- **Solución**: Modified build script to use `npx prisma db push --accept-data-loss` to allow schema migration despite potential data conflicts.
+- **Archivos modificados**:
+  - `scripts/build-with-db.js`
+
 ### 🎯 Funcionalidades Restauradas
 
 - ✅ **Edición de System Prompts** - Funcional
