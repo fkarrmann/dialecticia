@@ -15,11 +15,23 @@ const ENCRYPTION_KEY = (() => {
 
 function encryptApiKey(apiKey: string): string {
   if (!apiKey) return ''
-  
-  const cipher = crypto.createCipher('aes-256-cbc', ENCRYPTION_KEY)
-  let encrypted = cipher.update(apiKey, 'utf8', 'hex')
-  encrypted += cipher.final('hex')
-  return encrypted
+  try {
+    // Use createCipheriv instead of deprecated createCipher
+    const algorithm = 'aes-256-cbc'
+    const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32)
+    const iv = crypto.randomBytes(16)
+    
+    const cipher = crypto.createCipheriv(algorithm, key, iv)
+    let encrypted = cipher.update(apiKey, 'utf8', 'hex')
+    encrypted += cipher.final('hex')
+    
+    // Prepend IV to encrypted data
+    return iv.toString('hex') + ':' + encrypted
+  } catch (error) {
+    console.error('❌ Encryption failed:', error)
+    // Store as plain text if encryption fails
+    return apiKey
+  }
 }
 
 function decryptApiKey(encryptedKey: string): string {
