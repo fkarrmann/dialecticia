@@ -123,24 +123,33 @@ export async function selectAntagonisticPhilosopher(
 
     const parsed = JSON.parse(jsonContent)
     
-    if (!parsed.suggestedPhilosopherId || !parsed.reasoning) {
-      throw new Error('Invalid response format: missing required fields')
+    // Fix: The prompt returns 'suggestedPhilosopher' (name), not 'suggestedPhilosopherId' (ID)
+    if (!parsed.suggestedPhilosopher || !parsed.reasoning) {
+      throw new Error('Invalid response format: missing required fields (suggestedPhilosopher or reasoning)')
     }
 
-    // Verificar que el filósofo sugerido existe en la lista
-    const suggestedPhilosopher = availablePhilosophers.find(p => p.id === parsed.suggestedPhilosopherId)
+    // Find the philosopher by name (since the prompt returns the name, not ID)
+    const suggestedPhilosopher = availablePhilosophers.find(p => 
+      p.name.toLowerCase() === parsed.suggestedPhilosopher.toLowerCase() ||
+      p.name === parsed.suggestedPhilosopher
+    )
+    
     if (!suggestedPhilosopher) {
-      throw new Error(`Suggested philosopher ${parsed.suggestedPhilosopherId} not found in available list`)
+      console.error('❌ Philosopher not found:', {
+        suggested: parsed.suggestedPhilosopher,
+        available: availablePhilosophers.map(p => p.name)
+      })
+      throw new Error(`Suggested philosopher "${parsed.suggestedPhilosopher}" not found in available list`)
     }
 
     console.log('✅ Filósofo antagónico seleccionado:', {
-      id: parsed.suggestedPhilosopherId,
+      id: suggestedPhilosopher.id,
       name: suggestedPhilosopher.name,
       reasoning: parsed.reasoning.substring(0, 100) + '...'
     })
 
     return {
-      suggestedPhilosopherId: parsed.suggestedPhilosopherId,
+      suggestedPhilosopherId: suggestedPhilosopher.id, // Return the ID, not the name
       reasoning: parsed.reasoning
     }
 
